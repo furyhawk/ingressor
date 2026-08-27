@@ -1,23 +1,19 @@
+import base64
+import io
+import os
 import traceback
+from contextlib import asynccontextmanager
+from typing import Annotated, Optional
 
 import click
-import os
-
-from pydantic import BaseModel, Field
-from starlette.responses import HTMLResponse
-
+from fastapi import FastAPI, File, Form, UploadFile
 from marker.config.parser import ConfigParser
-from marker.output import text_from_rendered
-
-import base64
-from contextlib import asynccontextmanager
-from typing import Optional, Annotated
-import io
-
-from fastapi import FastAPI, Form, File, UploadFile
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
+from marker.output import text_from_rendered
 from marker.settings import settings
+from pydantic import BaseModel, Field
+from starlette.responses import HTMLResponse
 
 app_data = {}
 

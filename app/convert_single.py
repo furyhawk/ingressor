@@ -7,8 +7,8 @@ os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = (
 )
 
 import time
-import click
 
+import click
 from marker.config.parser import ConfigParser
 from marker.config.printer import CustomClickPrinter
 from marker.logger import configure_logging, get_logger

@@ -2,16 +2,15 @@ import base64
 import io
 import sys
 
-from PIL import Image
 import click
 import pypdfium2
 import streamlit as st
-from streamlit.runtime.uploaded_file_manager import UploadedFile
-
 from marker.config.parser import ConfigParser
 from marker.config.printer import CustomClickPrinter
 from marker.models import create_model_dict
 from marker.settings import settings
+from PIL import Image
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 
 @st.cache_data()

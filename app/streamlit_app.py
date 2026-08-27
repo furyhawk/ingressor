@@ -1,29 +1,27 @@
 import os
 
 from marker.scripts.common import (
-    load_models,
-    parse_args,
-    img_to_html,
     get_page_image,
+    img_to_html,
+    load_models,
     page_count,
+    parse_args,
 )
 
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 os.environ["IN_STREAMLIT"] = "true"
-
-from marker.settings import settings
-from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 import re
 import tempfile
 from typing import Any, Dict
 
 import streamlit as st
-from PIL import Image
-
-from marker.converters.pdf import PdfConverter
 from marker.config.parser import ConfigParser
+from marker.converters.pdf import PdfConverter
 from marker.output import text_from_rendered
+from marker.settings import settings
+from PIL import Image
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 
 def convert_pdf(fname: str, config_parser: ConfigParser) -> (str, Dict[str, Any], dict):
