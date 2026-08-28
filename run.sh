@@ -15,10 +15,8 @@ if ! command -v reflex &> /dev/null; then
 fi
 
 # Check Python version
-python_version=$(python --version | cut -d' ' -f2 | cut -d'.' -f1,2)
-required_version="3.11"
-
-if (( $(echo "$python_version < $required_version" | bc -l) )); then
+python_version=$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')")
+if ! python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)"; then
     echo "❌ Python 3.11 or higher is required. Current version: $python_version"
     exit 1
 fi

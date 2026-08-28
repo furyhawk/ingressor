@@ -27,12 +27,12 @@ build:
 	reflex build
 
 lint:
-	python -m black --check reflex_app.py
-	python -m ruff check reflex_app.py
+	uvx black --check --target-version py311 reflex_app.py
+	uvx ruff check reflex_app.py
 
 format:
-	python -m black reflex_app.py
-	python -m ruff check --fix reflex_app.py
+	uvx black --target-version py311 reflex_app.py
+	uvx ruff check --fix reflex_app.py
 
 clean:
 	rm -rf .web

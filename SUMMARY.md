@@ -356,7 +356,7 @@ A: Extend the FastAPI backend in rxconfig.py or create custom routes.
 A: Yes, it's designed for it. Add authentication via middleware.
 
 **Q: What about the original Streamlit app?**
-A: It's preserved in the `app/` folder for reference. You can still run it with `streamlit run app/streamlit_app.py`.
+A: It's preserved in the `app/` folder for reference. To run it, install Streamlit first (`uv pip install streamlit streamlit-ace`) and then run `streamlit run app/streamlit_app.py`.
 
 **Q: How do I deploy to production?**
 A: See DEPLOYMENT.md for multiple options (Docker, Cloud, On-premises).

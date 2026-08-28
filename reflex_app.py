@@ -6,10 +6,11 @@ This app converts PDFs, images, and documents to Markdown, HTML, JSON, or chunks
 
 import base64
 import io
+import mimetypes
 import os
 import re
 import tempfile
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import reflex as rx
 from marker.config.parser import ConfigParser
@@ -34,14 +35,14 @@ class MarkerState(rx.State):
     """State management for the Marker PDF converter application."""
     
     # File handling
-    uploaded_file_data: Optional[bytes] = None
+    uploaded_file_data: bytes | None = None
     uploaded_file_name: str = ""
     uploaded_file_type: str = ""
     
     # PDF navigation
     page_number: int = 0
-    total_pages: int = 1
-    current_page_image: Optional[str] = None  # base64 encoded image
+    total_pages: int = 0
+    current_page_image: str = ""  # base64 encoded image
     
     # Processing options
     page_range: str = "0-0"
@@ -61,27 +62,30 @@ class MarkerState(rx.State):
     # Results
     conversion_result: str = ""
     result_format: str = ""
-    debug_pdf_image: Optional[str] = None  # base64 encoded
-    debug_layout_image: Optional[str] = None  # base64 encoded
+    debug_pdf_image: str = ""  # base64 encoded
+    debug_layout_image: str = ""  # base64 encoded
     error_message: str = ""
     
     # Models loaded flag
     models_loaded: bool = False
     model_dict: Dict[str, Any] = {}
 
-    def handle_file_upload(self, files: list[rx.UploadFile]):
+    async def handle_file_upload(self, files: list[rx.UploadFile]):
         """Handle file upload."""
         if not files:
             self.error_message = "No file selected"
             return
         
         file = files[0]
-        self.uploaded_file_name = file.filename
-        self.uploaded_file_type = file.content_type or ""
+        self.uploaded_file_name = file.name
+        self.uploaded_file_type = mimetypes.guess_type(file.name)[0] or ""
         
         # Read file content
         try:
-            self.uploaded_file_data = file.content
+            self.uploaded_file_data = await file.read()
+            self.current_page_image = ""
+            self.debug_pdf_image = ""
+            self.debug_layout_image = ""
             self._update_page_info()
             self.error_message = ""
         except Exception as e:
@@ -331,8 +335,16 @@ def render_sidebar() -> rx.Component:
             rx.upload(
                 rx.button("📁 Choose File", color_scheme="blue"),
                 id="file_upload",
-                on_drop=MarkerState.handle_file_upload,
                 multiple=False,
+            ),
+            rx.button(
+                "⬆️ Upload Selected File",
+                on_click=MarkerState.handle_file_upload(
+                    rx.upload_files(upload_id="file_upload")
+                ),
+                width="100%",
+                color_scheme="gray",
+                variant="outline",
             ),
             rx.cond(
                 MarkerState.uploaded_file_name != "",

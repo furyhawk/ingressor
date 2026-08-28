@@ -296,7 +296,7 @@ Complete list of all files created and modified during the rebuild.
 ### app/streamlit_app.py
 - **Purpose:** Original Streamlit implementation
 - **Status:** Preserved for reference
-- **Usage:** Can still run with `streamlit run app/streamlit_app.py`
+- **Usage:** Install Streamlit first (`uv pip install streamlit streamlit-ace`), then run `streamlit run app/streamlit_app.py`
 
 ### app/common.py
 - **Purpose:** Helper functions
