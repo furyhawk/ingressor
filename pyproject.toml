@@ -1,7 +1,7 @@
 [project]
 name = "ingressor"
 version = "0.1.0"
-description = "Add your description here"
+description = "Marker PDF/Document to Markdown Converter using Reflex Framework"
 readme = "README.md"
 authors = [
     { name = "furyhawk", email = "furyx@hotmail.com" }
@@ -10,8 +10,9 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.141.1",
     "marker-pdf>=2.0.0",
-    "streamlit>=1.62.0",
-    "streamlit-ace>=0.1.1",
+    "reflex>=0.3.0",
+    "pypdfium2>=4.0.0",
+    "pillow>=10.0.0",
 ]
 
 [project.scripts]

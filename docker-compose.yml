@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  marker-converter:
+    build: .
+    container_name: marker-converter
+    ports:
+      - "3000:3000"
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTORCH_ENABLE_MPS_FALLBACK=1
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+    shm_size: 2gb
+    networks:
+      - marker-network
+
+networks:
+  marker-network:
+    driver: bridge
+
+volumes:
+  uploads:
+  outputs:
