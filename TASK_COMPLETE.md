@@ -92,7 +92,7 @@
 ## 🚀 Quick Start (Already in Repo)
 
 ```bash
-cd reflex-framework-rebuild
+# From the repo root
 
 # Step 1: Install
 uv sync
