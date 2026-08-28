@@ -64,7 +64,7 @@ def make_line_chart(path: Path) -> None:
 
     drawer.text((plot_left, 10), "Traffic and engagement trend", fill=(40, 44, 52), anchor="la")
     drawer.text((plot_left, plot_bottom + 28), "Weeks", fill=(60, 72, 90))
-    drawer.text((10, plot_top + 12), "Visits", fill=(60, 72, 90), rotate=90)
+    drawer.text((10, plot_top + 12), "Visits", fill=(60, 72, 90))
     image.save(path)
 
 
@@ -98,7 +98,7 @@ def make_bar_chart(path: Path) -> None:
 
     drawer.text((plot_left, 12), "Regional performance", fill=(40, 44, 52))
     drawer.text((plot_left, plot_bottom + 28), "Region", fill=(60, 72, 90))
-    drawer.text((8, plot_top + 30), "Score", fill=(60, 72, 90), rotate=90)
+    drawer.text((8, plot_top + 30), "Score", fill=(60, 72, 90))
     image.save(path)
 
 
@@ -135,12 +135,12 @@ def make_process_diagram(path: Path) -> None:
         (400, 70, 540, 160, "Analyze"),
         (580, 70, 680, 160, "Export"),
     ]
-    for left, top, right, bottom, label in box_specs:
+    for index, (left, top, right, bottom, label) in enumerate(box_specs):
         drawer.rounded_rectangle((left, top, right, bottom), radius=18, fill=(240, 246, 255), outline=(100, 146, 235), width=2)
         drawer.text(((left + right) / 2, (top + bottom) / 2), label, fill=(32, 52, 90), anchor="mm")
-        if label != "Export":
-            target_x = right + 20 if label != "Analyze" else 400
-            draw_arrow(drawer, right, (top + bottom) / 2, target_x, (top + bottom) / 2, (90, 130, 180), 3)
+        if index < len(box_specs) - 1:
+            next_left = box_specs[index + 1][0]
+            draw_arrow(drawer, right, (top + bottom) / 2, next_left, (top + bottom) / 2, (90, 130, 180), 3)
 
     drawer.text((50, 220), "Input", fill=(65, 80, 95))
     drawer.text((560, 220), "Output", fill=(65, 80, 95))
