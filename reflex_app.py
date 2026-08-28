@@ -26,6 +26,17 @@ import pypdfium2
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 os.environ["IN_STREAMLIT"] = "true"
 
+# Keep model artifacts out of Reflex state to avoid serialization errors.
+_MODEL_DICT: Dict[str, Any] | None = None
+
+
+def _get_model_dict() -> Dict[str, Any]:
+    """Lazily initialize and cache marker model artifacts."""
+    global _MODEL_DICT
+    if _MODEL_DICT is None:
+        _MODEL_DICT = create_model_dict()
+    return _MODEL_DICT
+
 
 # ============================================================================
 # State Management
@@ -66,10 +77,6 @@ class MarkerState(rx.State):
     debug_layout_image: str = ""  # base64 encoded
     error_message: str = ""
     
-    # Models loaded flag
-    models_loaded: bool = False
-    model_dict: Dict[str, Any] = {}
-
     async def handle_file_upload(self, files: list[rx.UploadFile]):
         """Handle file upload."""
         if not files:
@@ -198,10 +205,9 @@ class MarkerState(rx.State):
         
         try:
             # Load models if not already loaded
-            if not self.models_loaded:
+            if _MODEL_DICT is None:
                 self.processing_message = "Loading models (this may take a moment)..."
-                self.model_dict = create_model_dict()
-                self.models_loaded = True
+                _get_model_dict()
             
             # Convert to PDF if needed
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -275,7 +281,7 @@ class MarkerState(rx.State):
         config_dict["pdftext_workers"] = 1
         converter = PdfConverter(
             config=config_dict,
-            artifact_dict=self.model_dict,
+            artifact_dict=_get_model_dict(),
             processor_list=config_parser.get_processors(),
             renderer=config_parser.get_renderer(),
             llm_service=config_parser.get_llm_service(),
