@@ -322,7 +322,7 @@ class MarkerState(rx.State):
 def render_sidebar() -> rx.Component:
     """Render the sidebar with upload and controls."""
     return rx.vstack(
-        rx.heading("Marker PDF Converter", size="md"),
+        rx.heading("Marker PDF Converter", size="4"),
         rx.divider(),
         
         # File upload
@@ -337,13 +337,13 @@ def render_sidebar() -> rx.Component:
             rx.cond(
                 MarkerState.uploaded_file_name != "",
                 rx.box(
-                    rx.text(f"📄 {MarkerState.uploaded_file_name}", size="sm", color="green"),
+                    rx.text(f"📄 {MarkerState.uploaded_file_name}", size="2", color="green"),
                     padding="0.5em",
                     border_radius="0.25em",
                     background_color="rgba(0, 255, 0, 0.1)",
                 )
             ),
-            spacing="1em",
+            spacing="4",
         ),
         
         rx.divider(),
@@ -364,10 +364,10 @@ def render_sidebar() -> rx.Component:
                         type_="number",
                         width="100%",
                     ),
-                    rx.text(f"/ {MarkerState.total_pages}", size="sm"),
+                    rx.text(f"/ {MarkerState.total_pages}", size="2"),
                     width="100%",
                 ),
-                spacing="0.5em",
+                spacing="2",
             ),
         ),
         
@@ -377,7 +377,7 @@ def render_sidebar() -> rx.Component:
         rx.vstack(
             rx.text("Output Options", weight="bold"),
             rx.vstack(
-                rx.text("Output Format", size="sm", weight="bold"),
+                rx.text("Output Format", size="2", weight="bold"),
                 rx.select(
                     ["markdown", "json", "html", "chunks"],
                     value=MarkerState.output_format,
@@ -385,7 +385,7 @@ def render_sidebar() -> rx.Component:
                 ),
             ),
             rx.vstack(
-                rx.text("Processing Mode", size="sm", weight="bold"),
+                rx.text("Processing Mode", size="2", weight="bold"),
                 rx.select(
                     ["auto", "balanced", "fast"],
                     value=MarkerState.mode,
@@ -395,12 +395,12 @@ def render_sidebar() -> rx.Component:
                     "'auto' picks by device: balanced on GPU, fast on CPU/MPS. "
                     "'balanced' uses the VLM layout model + full-page OCR. "
                     "'fast' uses lightweight CPU detectors and only OCRs garbled content.",
-                    size="xs",
+                    size="1",
                     color="gray",
                 ),
             ),
             rx.vstack(
-                rx.text("Page Range", size="sm", weight="bold"),
+                rx.text("Page Range", size="2", weight="bold"),
                 rx.input(
                     value=MarkerState.page_range,
                     on_change=MarkerState.set_page_range,
@@ -408,11 +408,11 @@ def render_sidebar() -> rx.Component:
                 ),
                 rx.text(
                     "Comma separated like 0,5-10,20",
-                    size="xs",
+                    size="1",
                     color="gray",
                 ),
             ),
-            spacing="1em",
+            spacing="4",
         ),
         
         rx.divider(),
@@ -450,7 +450,7 @@ def render_sidebar() -> rx.Component:
                 is_checked=MarkerState.debug,
                 on_change=lambda _: MarkerState.toggle_debug(),
             ),
-            spacing="0.75em",
+            spacing="3",
         ),
         
         rx.divider(),
@@ -462,14 +462,14 @@ def render_sidebar() -> rx.Component:
             width="100%",
             is_loading=MarkerState.is_processing,
             color_scheme="green",
-            size="lg",
+            size="4",
         ),
         
         # Status message
         rx.cond(
             MarkerState.processing_message != "",
             rx.box(
-                rx.text(MarkerState.processing_message, size="sm"),
+                rx.text(MarkerState.processing_message, size="2"),
                 padding="1em",
                 border_radius="0.5em",
                 background_color="rgba(100, 150, 255, 0.1)",
@@ -480,14 +480,14 @@ def render_sidebar() -> rx.Component:
         rx.cond(
             MarkerState.error_message != "",
             rx.box(
-                rx.text(MarkerState.error_message, size="sm", color="red"),
+                rx.text(MarkerState.error_message, size="2", color="red"),
                 padding="1em",
                 border_radius="0.5em",
                 background_color="rgba(255, 0, 0, 0.1)",
             )
         ),
         
-        spacing="1.5em",
+        spacing="5",
         padding="1.5em",
         width="100%",
         height="100vh",
@@ -499,7 +499,7 @@ def render_sidebar() -> rx.Component:
 def render_preview() -> rx.Component:
     """Render the left preview column with page image."""
     return rx.vstack(
-        rx.heading("Document Preview", size="md"),
+        rx.heading("Document Preview", size="4"),
         rx.cond(
             MarkerState.current_page_image != "",
             rx.image(src=MarkerState.current_page_image, width="100%"),
@@ -514,19 +514,19 @@ def render_preview() -> rx.Component:
         rx.cond(
             MarkerState.debug_pdf_image != "",
             rx.vstack(
-                rx.heading("PDF Debug Image", size="sm"),
+                rx.heading("PDF Debug Image", size="3"),
                 rx.image(src=MarkerState.debug_pdf_image, width="100%"),
             ),
         ),
         rx.cond(
             MarkerState.debug_layout_image != "",
             rx.vstack(
-                rx.heading("Layout Debug Image", size="sm"),
+                rx.heading("Layout Debug Image", size="3"),
                 rx.image(src=MarkerState.debug_layout_image, width="100%"),
             ),
         ),
         
-        spacing="1.5em",
+        spacing="5",
         padding="1.5em",
         width="100%",
         height="100vh",
@@ -537,7 +537,7 @@ def render_preview() -> rx.Component:
 def render_results() -> rx.Component:
     """Render the right results column."""
     return rx.vstack(
-        rx.heading("Conversion Results", size="md"),
+        rx.heading("Conversion Results", size="4"),
         rx.cond(
             MarkerState.conversion_result != "",
             rx.vstack(
@@ -558,7 +558,7 @@ def render_results() -> rx.Component:
                         ),
                     ),
                 ),
-                spacing="1em",
+                spacing="4",
             ),
             rx.box(
                 rx.text("Results will appear here", color="gray"),
@@ -566,7 +566,7 @@ def render_results() -> rx.Component:
                 text_align="center",
             ),
         ),
-        spacing="1.5em",
+        spacing="5",
         padding="1.5em",
         width="100%",
         height="100vh",
@@ -624,6 +624,3 @@ app = rx.App()
 
 # Add index page
 app.add_page(index, title="Marker PDF Converter")
-
-# Configure app
-app.config.app_name = "Marker PDF Converter"
