@@ -8,3 +8,43 @@ wheels/
 
 # Virtual environments
 .venv
+venv/
+env/
+ENV/
+
+# Reflex-specific
+.web/
+.reflex/
+.next/
+out/
+rxenv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+*.log
+*.pid
+.cache/
+tmp/
+temp/
+
+# Node modules (if using npm)
+node_modules/
+npm-debug.log
+yarn-error.log
