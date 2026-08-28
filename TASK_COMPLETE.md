@@ -60,9 +60,7 @@
 | Documentation Lines | 2,900+ |
 | Application Code | 650+ |
 | Configuration Lines | 200+ |
-| Branch | agents/reflex-framework-rebuild |
-| PR Status | OPEN |
-| PR Number | #1 |
+| Source Control | See GitHub (branch/PR) for current status |
 
 ---
 
