@@ -6,7 +6,7 @@ Your Marker PDF Converter has been successfully rebuilt with the Reflex Framewor
 
 ### 1️⃣ Install Dependencies
 ```bash
-cd /Users/user/projects/ingressor.worktrees/reflex-framework-rebuild
+cd /path/to/ingressor
 uv sync
 ```
 

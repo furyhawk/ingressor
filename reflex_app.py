@@ -6,10 +6,11 @@ This app converts PDFs, images, and documents to Markdown, HTML, JSON, or chunks
 
 import base64
 import io
+import mimetypes
 import os
 import re
 import tempfile
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import reflex as rx
 from marker.config.parser import ConfigParser
@@ -34,14 +35,14 @@ class MarkerState(rx.State):
     """State management for the Marker PDF converter application."""
     
     # File handling
-    uploaded_file_data: Optional[bytes] = None
+    uploaded_file_data: bytes | None = None
     uploaded_file_name: str = ""
     uploaded_file_type: str = ""
     
     # PDF navigation
     page_number: int = 0
-    total_pages: int = 1
-    current_page_image: Optional[str] = None  # base64 encoded image
+    total_pages: int = 0
+    current_page_image: str = ""  # base64 encoded image
     
     # Processing options
     page_range: str = "0-0"
@@ -61,27 +62,30 @@ class MarkerState(rx.State):
     # Results
     conversion_result: str = ""
     result_format: str = ""
-    debug_pdf_image: Optional[str] = None  # base64 encoded
-    debug_layout_image: Optional[str] = None  # base64 encoded
+    debug_pdf_image: str = ""  # base64 encoded
+    debug_layout_image: str = ""  # base64 encoded
     error_message: str = ""
     
     # Models loaded flag
     models_loaded: bool = False
     model_dict: Dict[str, Any] = {}
 
-    def handle_file_upload(self, files: list[rx.UploadFile]):
+    async def handle_file_upload(self, files: list[rx.UploadFile]):
         """Handle file upload."""
         if not files:
             self.error_message = "No file selected"
             return
         
         file = files[0]
-        self.uploaded_file_name = file.filename
-        self.uploaded_file_type = file.content_type or ""
+        self.uploaded_file_name = file.name
+        self.uploaded_file_type = mimetypes.guess_type(file.name)[0] or ""
         
         # Read file content
         try:
-            self.uploaded_file_data = file.content
+            self.uploaded_file_data = await file.read()
+            self.current_page_image = ""
+            self.debug_pdf_image = ""
+            self.debug_layout_image = ""
             self._update_page_info()
             self.error_message = ""
         except Exception as e:
@@ -322,7 +326,7 @@ class MarkerState(rx.State):
 def render_sidebar() -> rx.Component:
     """Render the sidebar with upload and controls."""
     return rx.vstack(
-        rx.heading("Marker PDF Converter", size="md"),
+        rx.heading("Marker PDF Converter", size="4"),
         rx.divider(),
         
         # File upload
@@ -331,19 +335,27 @@ def render_sidebar() -> rx.Component:
             rx.upload(
                 rx.button("📁 Choose File", color_scheme="blue"),
                 id="file_upload",
-                on_drop=MarkerState.handle_file_upload,
                 multiple=False,
+            ),
+            rx.button(
+                "⬆️ Upload Selected File",
+                on_click=MarkerState.handle_file_upload(
+                    rx.upload_files(upload_id="file_upload")
+                ),
+                width="100%",
+                color_scheme="gray",
+                variant="outline",
             ),
             rx.cond(
                 MarkerState.uploaded_file_name != "",
                 rx.box(
-                    rx.text(f"📄 {MarkerState.uploaded_file_name}", size="sm", color="green"),
+                    rx.text(f"📄 {MarkerState.uploaded_file_name}", size="2", color="green"),
                     padding="0.5em",
                     border_radius="0.25em",
                     background_color="rgba(0, 255, 0, 0.1)",
                 )
             ),
-            spacing="1em",
+            spacing="4",
         ),
         
         rx.divider(),
@@ -364,10 +376,10 @@ def render_sidebar() -> rx.Component:
                         type_="number",
                         width="100%",
                     ),
-                    rx.text(f"/ {MarkerState.total_pages}", size="sm"),
+                    rx.text(f"/ {MarkerState.total_pages}", size="2"),
                     width="100%",
                 ),
-                spacing="0.5em",
+                spacing="2",
             ),
         ),
         
@@ -377,7 +389,7 @@ def render_sidebar() -> rx.Component:
         rx.vstack(
             rx.text("Output Options", weight="bold"),
             rx.vstack(
-                rx.text("Output Format", size="sm", weight="bold"),
+                rx.text("Output Format", size="2", weight="bold"),
                 rx.select(
                     ["markdown", "json", "html", "chunks"],
                     value=MarkerState.output_format,
@@ -385,7 +397,7 @@ def render_sidebar() -> rx.Component:
                 ),
             ),
             rx.vstack(
-                rx.text("Processing Mode", size="sm", weight="bold"),
+                rx.text("Processing Mode", size="2", weight="bold"),
                 rx.select(
                     ["auto", "balanced", "fast"],
                     value=MarkerState.mode,
@@ -395,12 +407,12 @@ def render_sidebar() -> rx.Component:
                     "'auto' picks by device: balanced on GPU, fast on CPU/MPS. "
                     "'balanced' uses the VLM layout model + full-page OCR. "
                     "'fast' uses lightweight CPU detectors and only OCRs garbled content.",
-                    size="xs",
+                    size="1",
                     color="gray",
                 ),
             ),
             rx.vstack(
-                rx.text("Page Range", size="sm", weight="bold"),
+                rx.text("Page Range", size="2", weight="bold"),
                 rx.input(
                     value=MarkerState.page_range,
                     on_change=MarkerState.set_page_range,
@@ -408,11 +420,11 @@ def render_sidebar() -> rx.Component:
                 ),
                 rx.text(
                     "Comma separated like 0,5-10,20",
-                    size="xs",
+                    size="1",
                     color="gray",
                 ),
             ),
-            spacing="1em",
+            spacing="4",
         ),
         
         rx.divider(),
@@ -450,7 +462,7 @@ def render_sidebar() -> rx.Component:
                 is_checked=MarkerState.debug,
                 on_change=lambda _: MarkerState.toggle_debug(),
             ),
-            spacing="0.75em",
+            spacing="3",
         ),
         
         rx.divider(),
@@ -462,14 +474,14 @@ def render_sidebar() -> rx.Component:
             width="100%",
             is_loading=MarkerState.is_processing,
             color_scheme="green",
-            size="lg",
+            size="4",
         ),
         
         # Status message
         rx.cond(
             MarkerState.processing_message != "",
             rx.box(
-                rx.text(MarkerState.processing_message, size="sm"),
+                rx.text(MarkerState.processing_message, size="2"),
                 padding="1em",
                 border_radius="0.5em",
                 background_color="rgba(100, 150, 255, 0.1)",
@@ -480,14 +492,14 @@ def render_sidebar() -> rx.Component:
         rx.cond(
             MarkerState.error_message != "",
             rx.box(
-                rx.text(MarkerState.error_message, size="sm", color="red"),
+                rx.text(MarkerState.error_message, size="2", color="red"),
                 padding="1em",
                 border_radius="0.5em",
                 background_color="rgba(255, 0, 0, 0.1)",
             )
         ),
         
-        spacing="1.5em",
+        spacing="5",
         padding="1.5em",
         width="100%",
         height="100vh",
@@ -499,7 +511,7 @@ def render_sidebar() -> rx.Component:
 def render_preview() -> rx.Component:
     """Render the left preview column with page image."""
     return rx.vstack(
-        rx.heading("Document Preview", size="md"),
+        rx.heading("Document Preview", size="4"),
         rx.cond(
             MarkerState.current_page_image != "",
             rx.image(src=MarkerState.current_page_image, width="100%"),
@@ -514,19 +526,19 @@ def render_preview() -> rx.Component:
         rx.cond(
             MarkerState.debug_pdf_image != "",
             rx.vstack(
-                rx.heading("PDF Debug Image", size="sm"),
+                rx.heading("PDF Debug Image", size="3"),
                 rx.image(src=MarkerState.debug_pdf_image, width="100%"),
             ),
         ),
         rx.cond(
             MarkerState.debug_layout_image != "",
             rx.vstack(
-                rx.heading("Layout Debug Image", size="sm"),
+                rx.heading("Layout Debug Image", size="3"),
                 rx.image(src=MarkerState.debug_layout_image, width="100%"),
             ),
         ),
         
-        spacing="1.5em",
+        spacing="5",
         padding="1.5em",
         width="100%",
         height="100vh",
@@ -537,7 +549,7 @@ def render_preview() -> rx.Component:
 def render_results() -> rx.Component:
     """Render the right results column."""
     return rx.vstack(
-        rx.heading("Conversion Results", size="md"),
+        rx.heading("Conversion Results", size="4"),
         rx.cond(
             MarkerState.conversion_result != "",
             rx.vstack(
@@ -558,7 +570,7 @@ def render_results() -> rx.Component:
                         ),
                     ),
                 ),
-                spacing="1em",
+                spacing="4",
             ),
             rx.box(
                 rx.text("Results will appear here", color="gray"),
@@ -566,7 +578,7 @@ def render_results() -> rx.Component:
                 text_align="center",
             ),
         ),
-        spacing="1.5em",
+        spacing="5",
         padding="1.5em",
         width="100%",
         height="100vh",
@@ -624,6 +636,3 @@ app = rx.App()
 
 # Add index page
 app.add_page(index, title="Marker PDF Converter")
-
-# Configure app
-app.config.app_name = "Marker PDF Converter"
