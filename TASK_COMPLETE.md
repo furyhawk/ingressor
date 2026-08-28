@@ -17,9 +17,9 @@
   - Async file processing
   - Error handling and status updates
 
-- **rxconfig.py** (8 lines)
+- **rxconfig.py**
   - Reflex framework configuration
-  - App name and frontend packages setup
+  - App name, plugins, and disabled plugins setup
 
 ### ✅ Documentation (2,900+ lines)
 1. **START_HERE.md** - Quick launch guide (most important!)
