@@ -13,6 +13,7 @@ dependencies = [
     "reflex>=0.3.0",
     "pypdfium2>=4.0.0",
     "pillow>=10.0.0",
+    "reportlab>=4.0.0",
 ]
 
 [project.scripts]

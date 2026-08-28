@@ -3,3 +3,4 @@ marker-pdf>=2.0.0
 fastapi>=0.141.1
 pypdfium2>=4.0.0
 pillow>=10.0.0
+reportlab>=4.0.0
