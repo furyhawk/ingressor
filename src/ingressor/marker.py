@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import html
 import io
 import os
 import re
@@ -95,7 +96,8 @@ def _image_to_html(image: Any, image_alt: str) -> str:
     img_bytes = io.BytesIO()
     image.save(img_bytes, format=settings.OUTPUT_IMAGE_FORMAT)
     encoded = base64.b64encode(img_bytes.getvalue()).decode(settings.OUTPUT_ENCODING)
+    escaped_alt = html.escape(image_alt, quote=True)
     return (
         f'<img src="data:image/{settings.OUTPUT_IMAGE_FORMAT.lower()};base64,'
-        f'{encoded}" alt="{image_alt}" style="max-width: 100%;">'
+        f'{encoded}" alt="{escaped_alt}" style="max-width: 100%;">'
     )

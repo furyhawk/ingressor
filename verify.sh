@@ -20,6 +20,7 @@ files=(
     "src/ingressor/__init__.py"
     "src/ingressor/app.py"
     "src/ingressor/components.py"
+    "src/ingressor/cli.py"
     "src/ingressor/marker.py"
     "src/ingressor/state.py"
     "rxconfig.py"

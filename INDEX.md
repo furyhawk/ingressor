@@ -57,7 +57,7 @@ Welcome to the Marker PDF Converter - Reflex Framework! Here's a complete guide 
 ## 🏗️ Application Architecture
 
 ### Main Application Package
-**Files:** [src/ingressor/](</Users/user/projects/ingressor.worktrees/refactor-folder-structure-best-practices/src/ingressor>)
+**Files:** [src/ingressor/](src/ingressor/)
 - `state.py` for state management and event handlers
 - `components.py` for UI composition
 - `marker.py` for conversion helpers and model caching

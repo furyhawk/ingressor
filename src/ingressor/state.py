@@ -76,7 +76,7 @@ class MarkerState(rx.State):
             if "pdf" in self.uploaded_file_type:
                 stream = io.BytesIO(self.uploaded_file_data)
                 doc = pypdfium2.PdfDocument(stream)
-                self.total_pages = len(doc) - 1
+                self.total_pages = max(len(doc) - 1, 0)
             else:
                 self.total_pages = 0
 
