@@ -231,7 +231,7 @@ def render_results() -> rx.Component:
                     ),
                 ),
                 width="100%",
-                justify="space-between",
+                justify="between",
                 align="center",
             ),
             padding="1rem 1.25rem",
