@@ -4,16 +4,29 @@ import reflex as rx
 
 from .state import MarkerState
 
+TEXT_PRIMARY = "#0f172a"
+TEXT_MUTED = "#1e293b"
+BORDER = "#cbd5e1"
+SUCCESS_DARK = "#166534"
+INFO_DARK = "#1d4ed8"
+ERROR_DARK = "#b91c1c"
+
 
 def render_sidebar() -> rx.Component:
     return rx.vstack(
         rx.hstack(
             rx.vstack(
-                rx.heading("Marker PDF Converter", size="4"),
+                rx.heading(
+                    "Marker PDF Converter",
+                    size="4",
+                    color=TEXT_PRIMARY,
+                    style={"color": TEXT_PRIMARY, "fontWeight": 700},
+                ),
                 rx.text(
                     "Upload a document, preview pages, then review the conversion before approving it.",
                     size="2",
-                    color="gray",
+                    color=TEXT_MUTED,
+                    style={"color": TEXT_MUTED},
                 ),
                 spacing="0",
             ),
@@ -24,6 +37,7 @@ def render_sidebar() -> rx.Component:
                 variant="outline",
                 color_scheme="gray",
                 border_radius="999px",
+                color=TEXT_PRIMARY,
             ),
             width="100%",
             justify="between",
@@ -31,11 +45,17 @@ def render_sidebar() -> rx.Component:
         ),
         rx.divider(),
         rx.vstack(
-            rx.text("Upload File", weight="bold"),
+            rx.text(
+                "Upload File",
+                weight="bold",
+                color=TEXT_PRIMARY,
+                style={"color": TEXT_PRIMARY, "fontWeight": 700},
+            ),
             rx.text(
                 "Choose a PDF, image, or supported document to begin.",
                 size="1",
-                color="gray",
+                color=TEXT_MUTED,
+                style={"color": TEXT_MUTED},
             ),
             rx.upload(
                 rx.button("📁 Choose File", color_scheme="blue", width="100%"),
@@ -50,6 +70,7 @@ def render_sidebar() -> rx.Component:
                 width="100%",
                 color_scheme="gray",
                 variant="outline",
+                color=TEXT_PRIMARY,
             ),
             rx.cond(
                 MarkerState.uploaded_file_name != "",
@@ -58,7 +79,7 @@ def render_sidebar() -> rx.Component:
                         rx.text(
                             f"📄 {MarkerState.uploaded_file_name}",
                             size="2",
-                            color="green",
+                            color=SUCCESS_DARK,
                             weight="bold",
                         ),
                         rx.text(
@@ -69,46 +90,52 @@ def render_sidebar() -> rx.Component:
                                 "unknown",
                             ),
                             size="1",
-                            color="gray",
+                            color=TEXT_MUTED,
                         ),
                         rx.cond(
                             MarkerState.total_pages > 0,
                             rx.text(
                                 f"Pages: {MarkerState.total_pages}",
                                 size="1",
-                                color="gray",
+                                color=TEXT_MUTED,
                             ),
                             rx.text(
                                 "Single-page preview",
                                 size="1",
-                                color="gray",
+                                color=TEXT_MUTED,
                             ),
                         ),
                         spacing="1",
                     ),
                     padding="0.75em 1em",
                     border_radius="12px",
-                    background_color="rgba(34, 197, 94, 0.1)",
-                    border="1px solid rgba(34, 197, 94, 0.2)",
+                    background_color="rgba(22, 101, 52, 0.08)",
+                    border="1px solid rgba(22, 101, 52, 0.25)",
                     width="100%",
                 ),
             ),
             spacing="4",
             padding="1rem",
             border_radius="16px",
-            background_color="rgba(15, 23, 42, 0.02)",
-            border="1px solid rgba(148, 163, 184, 0.18)",
+            background_color="#f8fafc",
+            border="1px solid #cbd5e1",
             width="100%",
         ),
         rx.divider(),
         rx.cond(
             MarkerState.total_pages > 0,
             rx.vstack(
-                rx.text("Page Navigation", weight="bold"),
+                rx.text(
+                    "Page Navigation",
+                    weight="bold",
+                    color=TEXT_PRIMARY,
+                    style={"color": TEXT_PRIMARY, "fontWeight": 700},
+                ),
                 rx.text(
                     "Use the arrows or enter a page number to update the preview.",
                     size="1",
-                    color="gray",
+                    color=TEXT_MUTED,
+                    style={"color": TEXT_MUTED},
                 ),
                 rx.hstack(
                     rx.button(
@@ -128,8 +155,9 @@ def render_sidebar() -> rx.Component:
                         min="1",
                         max=MarkerState.total_pages,
                         width="5.5em",
+                        border_color=BORDER,
                     ),
-                    rx.text(f"of {MarkerState.total_pages}", size="2"),
+                    rx.text(f"of {MarkerState.total_pages}", size="2", color=TEXT_PRIMARY),
                     rx.button(
                         "▶",
                         on_click=MarkerState.go_to_next_page,
@@ -142,16 +170,27 @@ def render_sidebar() -> rx.Component:
                 spacing="3",
                 padding="1rem",
                 border_radius="16px",
-                background_color="rgba(15, 23, 42, 0.02)",
-                border="1px solid rgba(148, 163, 184, 0.18)",
+                background_color="#f8fafc",
+                border="1px solid #cbd5e1",
                 width="100%",
             ),
         ),
         rx.divider(),
         rx.vstack(
-            rx.text("Output Options", weight="bold"),
+            rx.text(
+                "Output Options",
+                weight="bold",
+                color=TEXT_PRIMARY,
+                style={"color": TEXT_PRIMARY, "fontWeight": 700},
+            ),
             rx.vstack(
-                rx.text("Output Format", size="2", weight="bold"),
+                rx.text(
+                    "Output Format",
+                    size="2",
+                    weight="bold",
+                    color=TEXT_PRIMARY,
+                    style={"color": TEXT_PRIMARY, "fontWeight": 700},
+                ),
                 rx.select(
                     ["markdown", "json", "html", "chunks"],
                     value=MarkerState.output_format,
@@ -159,7 +198,13 @@ def render_sidebar() -> rx.Component:
                 ),
             ),
             rx.vstack(
-                rx.text("Processing Mode", size="2", weight="bold"),
+                rx.text(
+                    "Processing Mode",
+                    size="2",
+                    weight="bold",
+                    color=TEXT_PRIMARY,
+                    style={"color": TEXT_PRIMARY, "fontWeight": 700},
+                ),
                 rx.select(
                     ["auto", "balanced", "fast"],
                     value=MarkerState.mode,
@@ -170,67 +215,86 @@ def render_sidebar() -> rx.Component:
                     "'balanced' uses the VLM layout model + full-page OCR. "
                     "'fast' uses lightweight CPU detectors and only OCRs garbled content.",
                     size="1",
-                    color="gray",
+                    color=TEXT_MUTED,
+                    style={"color": TEXT_MUTED},
                 ),
             ),
             rx.vstack(
-                rx.text("Page Range", size="2", weight="bold"),
+                rx.text(
+                    "Page Range",
+                    size="2",
+                    weight="bold",
+                    color=TEXT_PRIMARY,
+                    style={"color": TEXT_PRIMARY, "fontWeight": 700},
+                ),
                 rx.input(
                     value=MarkerState.page_range,
                     on_change=MarkerState.set_page_range,
                     placeholder="e.g., 0,5-10,20",
+                    border_color=BORDER,
                 ),
                 rx.text(
                     "Comma separated like 0,5-10,20",
                     size="1",
-                    color="gray",
+                    color=TEXT_MUTED,
                 ),
             ),
             spacing="4",
             padding="1rem",
             border_radius="16px",
-            background_color="rgba(15, 23, 42, 0.02)",
-            border="1px solid rgba(148, 163, 184, 0.18)",
+            background_color="#f8fafc",
+            border="1px solid #cbd5e1",
             width="100%",
         ),
         rx.divider(),
         rx.vstack(
-            rx.text("Processing Options", weight="bold"),
+            rx.text(
+                "Processing Options",
+                weight="bold",
+                color=TEXT_PRIMARY,
+                style={"color": TEXT_PRIMARY, "fontWeight": 700},
+            ),
             rx.checkbox(
                 "Use LLM",
                 is_checked=MarkerState.use_llm,
                 on_change=lambda _: MarkerState.toggle_use_llm(),
+                color=TEXT_PRIMARY,
             ),
             rx.checkbox(
                 "Force OCR",
                 is_checked=MarkerState.force_ocr,
                 on_change=lambda _: MarkerState.toggle_force_ocr(),
+                color=TEXT_PRIMARY,
             ),
             rx.checkbox(
                 "Disable OCR",
                 is_checked=MarkerState.disable_ocr,
                 on_change=lambda _: MarkerState.toggle_disable_ocr(),
+                color=TEXT_PRIMARY,
             ),
             rx.checkbox(
                 "Strip Existing OCR",
                 is_checked=MarkerState.strip_existing_ocr,
                 on_change=lambda _: MarkerState.toggle_strip_existing_ocr(),
+                color=TEXT_PRIMARY,
             ),
             rx.checkbox(
                 "Show Page Headers/Footers",
                 is_checked=MarkerState.keep_headers_footers,
                 on_change=lambda _: MarkerState.toggle_keep_headers_footers(),
+                color=TEXT_PRIMARY,
             ),
             rx.checkbox(
                 "Debug Mode",
                 is_checked=MarkerState.debug,
                 on_change=lambda _: MarkerState.toggle_debug(),
+                color=TEXT_PRIMARY,
             ),
             spacing="3",
             padding="1rem",
             border_radius="16px",
-            background_color="rgba(15, 23, 42, 0.02)",
-            border="1px solid rgba(148, 163, 184, 0.18)",
+            background_color="#f8fafc",
+            border="1px solid #cbd5e1",
             width="100%",
         ),
         rx.divider(),
@@ -247,11 +311,11 @@ def render_sidebar() -> rx.Component:
         rx.cond(
             MarkerState.processing_message != "",
             rx.box(
-                rx.text(MarkerState.processing_message, size="2"),
+                rx.text(MarkerState.processing_message, size="2", color=TEXT_PRIMARY),
                 padding="1em",
                 border_radius="0.75em",
-                background_color="rgba(100, 150, 255, 0.1)",
-                border="1px solid rgba(100, 150, 255, 0.18)",
+                background_color="rgba(29, 78, 216, 0.08)",
+                border="1px solid rgba(29, 78, 216, 0.25)",
                 width="100%",
             ),
         ),
@@ -261,22 +325,23 @@ def render_sidebar() -> rx.Component:
                 rx.text(
                     "Upload a file to enable conversion.",
                     size="2",
-                    color="gray",
+                    color=TEXT_MUTED,
                 ),
                 padding="1em",
                 border_radius="0.75em",
-                background_color="rgba(148, 163, 184, 0.08)",
+                background_color="#f1f5f9",
+                border="1px solid #cbd5e1",
                 width="100%",
             ),
         ),
         rx.cond(
             MarkerState.error_message != "",
             rx.box(
-                rx.text(MarkerState.error_message, size="2", color="red"),
+                rx.text(MarkerState.error_message, size="2", color=ERROR_DARK),
                 padding="1em",
                 border_radius="0.75em",
-                background_color="rgba(255, 0, 0, 0.1)",
-                border="1px solid rgba(239, 68, 68, 0.2)",
+                background_color="rgba(185, 28, 28, 0.08)",
+                border="1px solid rgba(185, 28, 28, 0.25)",
                 width="100%",
             ),
         ),
@@ -285,17 +350,17 @@ def render_sidebar() -> rx.Component:
         width="100%",
         height="100vh",
         overflow_y="auto",
-        background_color="rgba(248, 250, 252, 0.95)",
-        border_right="1px solid rgba(148, 163, 184, 0.25)",
+        background_color="#f8fafc",
+        border_right="1px solid #dfe7f1",
     )
 
 
 def render_preview() -> rx.Component:
     return rx.vstack(
         rx.box(
-            rx.heading("Document Preview", size="4"),
+            rx.heading("Document Preview", size="4", color=TEXT_PRIMARY),
             padding="1rem 1.25rem 0.75rem",
-            border_bottom="1px solid rgba(148, 163, 184, 0.18)",
+            border_bottom="1px solid #dfe7f1",
             width="100%",
         ),
         rx.box(
@@ -308,7 +373,7 @@ def render_preview() -> rx.Component:
                         max_width="800px",
                         border_radius="18px",
                         box_shadow="0 16px 40px rgba(15, 23, 42, 0.12)",
-                        border="1px solid rgba(148, 163, 184, 0.2)",
+                        border="1px solid #cbd5e1",
                         background_color="white",
                         object_fit="contain",
                     ),
@@ -319,12 +384,12 @@ def render_preview() -> rx.Component:
                     align_items="center",
                 ),
                 rx.box(
-                    rx.text("Upload a file to see preview", color="gray", size="2"),
+                    rx.text("Upload a file to see preview", color=TEXT_MUTED, size="2"),
                     padding="2em",
                     text_align="center",
-                    border="1px dashed rgba(148, 163, 184, 0.4)",
+                    border="1px dashed #94a3b8",
                     border_radius="16px",
-                    background_color="rgba(148, 163, 184, 0.03)",
+                    background_color="#f8fafc",
                     width="100%",
                     max_width="640px",
                 ),
@@ -337,14 +402,14 @@ def render_preview() -> rx.Component:
         rx.cond(
             MarkerState.debug_pdf_image != "",
             rx.vstack(
-                rx.heading("PDF Debug Image", size="3"),
+                rx.heading("PDF Debug Image", size="3", color=TEXT_PRIMARY),
                 rx.image(src=MarkerState.debug_pdf_image, width="100%"),
             ),
         ),
         rx.cond(
             MarkerState.debug_layout_image != "",
             rx.vstack(
-                rx.heading("Layout Debug Image", size="3"),
+                rx.heading("Layout Debug Image", size="3", color=TEXT_PRIMARY),
                 rx.image(src=MarkerState.debug_layout_image, width="100%"),
             ),
         ),
@@ -353,7 +418,7 @@ def render_preview() -> rx.Component:
         width="100%",
         height="100vh",
         overflow_y="auto",
-        background_color="rgba(248, 250, 252, 0.8)",
+        background_color="#f8fafc",
     )
 
 
@@ -361,22 +426,22 @@ def render_results() -> rx.Component:
     return rx.vstack(
         rx.box(
             rx.hstack(
-                rx.heading("Review conversion", size="4"),
+                rx.heading("Review conversion", size="4", color=TEXT_PRIMARY),
                 rx.cond(
                     MarkerState.review_status == "approved",
                     rx.box(
                         rx.text("Approved", size="1", weight="bold"),
                         padding="0.35rem 0.75rem",
                         border_radius="999px",
-                        background_color="rgba(34, 197, 94, 0.15)",
-                        color="#166534",
+                        background_color="rgba(22, 101, 52, 0.12)",
+                        color=SUCCESS_DARK,
                     ),
                     rx.box(
                         rx.text("Review pending", size="1", weight="bold"),
                         padding="0.35rem 0.75rem",
                         border_radius="999px",
-                        background_color="rgba(59, 130, 246, 0.12)",
-                        color="#1d4ed8",
+                        background_color="rgba(29, 78, 216, 0.1)",
+                        color=INFO_DARK,
                     ),
                 ),
                 width="100%",
@@ -385,8 +450,8 @@ def render_results() -> rx.Component:
             ),
             padding="1rem 1.25rem",
             border_radius="16px",
-            background_color="rgba(15, 23, 42, 0.03)",
-            border="1px solid rgba(148, 163, 184, 0.2)",
+            background_color="#f8fafc",
+            border="1px solid #dfe7f1",
             width="100%",
         ),
         rx.cond(
@@ -395,7 +460,7 @@ def render_results() -> rx.Component:
                 rx.text(
                     "Review the conversion result below. You can edit the text if needed, then approve the conversion.",
                     size="2",
-                    color="gray",
+                    color=TEXT_MUTED,
                 ),
                 rx.box(
                     rx.vstack(
@@ -403,19 +468,19 @@ def render_results() -> rx.Component:
                             "Original Conversion",
                             size="1",
                             weight="bold",
-                            color="gray",
+                            color=TEXT_MUTED,
                         ),
                         rx.box(
                             rx.text(
                                 MarkerState.original_conversion,
                                 size="2",
                                 font_family="monospace",
-                                color="gray",
+                                color=TEXT_PRIMARY,
                             ),
                             padding="0.75rem 1rem",
                             border_radius="8px",
-                            background_color="rgba(148, 163, 184, 0.08)",
-                            border="1px solid rgba(148, 163, 184, 0.2)",
+                            background_color="#f1f5f9",
+                            border="1px solid #cbd5e1",
                             max_h="200px",
                             overflow_y="auto",
                             width="100%",
@@ -425,7 +490,7 @@ def render_results() -> rx.Component:
                     ),
                     padding="1rem",
                     border_radius="12px",
-                    background_color="rgba(15, 23, 42, 0.02)",
+                    background_color="#f8fafc",
                     width="100%",
                 ),
                 rx.box(
@@ -434,6 +499,7 @@ def render_results() -> rx.Component:
                             "Your Edits",
                             size="1",
                             weight="bold",
+                            color=TEXT_PRIMARY,
                         ),
                         rx.text_area(
                             value=MarkerState.review_text,
@@ -442,17 +508,18 @@ def render_results() -> rx.Component:
                             width="100%",
                             font_family="monospace",
                             border_radius="12px",
-                            border="1px solid rgba(148, 163, 184, 0.35)",
-                            background_color="white",
+                            border="1px solid #94a3b8",
+                            background_color="#f8fafc",
                             resize="vertical",
                             box_shadow="inset 0 1px 2px rgba(15, 23, 42, 0.05)",
+                            color=TEXT_PRIMARY,
                         ),
                         spacing="2",
                         width="100%",
                     ),
                     padding="1rem",
                     border_radius="12px",
-                    background_color="rgba(15, 23, 42, 0.02)",
+                    background_color="#f8fafc",
                     width="100%",
                 ),
                 rx.hstack(
@@ -469,6 +536,7 @@ def render_results() -> rx.Component:
                         color_scheme="gray",
                         variant="outline",
                         border_radius="10px",
+                        color=TEXT_PRIMARY,
                     ),
                     spacing="3",
                     wrap="wrap",
@@ -478,25 +546,25 @@ def render_results() -> rx.Component:
                     rx.box(
                         rx.text(
                             "✓ Conversion approved and ready to export.",
-                            color="green",
+                            color=SUCCESS_DARK,
                             size="2",
                             weight="bold",
                         ),
                         padding="0.75rem 1rem",
                         border_radius="12px",
-                        background_color="rgba(34, 197, 94, 0.12)",
+                        background_color="rgba(22, 101, 52, 0.12)",
                         width="100%",
                     ),
                 ),
                 spacing="4",
             ),
             rx.box(
-                rx.text("Results will appear here", color="gray"),
+                rx.text("Results will appear here", color=TEXT_MUTED),
                 padding="2em",
                 text_align="center",
-                border="1px dashed rgba(148, 163, 184, 0.35)",
+                border="1px dashed #94a3b8",
                 border_radius="16px",
-                background_color="rgba(148, 163, 184, 0.03)",
+                background_color="#f8fafc",
                 width="100%",
             ),
         ),
@@ -505,7 +573,7 @@ def render_results() -> rx.Component:
         width="100%",
         height="100vh",
         overflow_y="auto",
-        background_color="rgba(248, 250, 252, 0.8)",
+        background_color="#f8fafc",
     )
 
 
@@ -520,8 +588,8 @@ def index() -> rx.Component:
                 max_width="420px",
                 height="100vh",
                 overflow_y="auto",
-                background_color="rgba(255, 255, 255, 0.92)",
-                border_right="1px solid rgba(148, 163, 184, 0.2)",
+                background_color="#ffffff",
+                border_right="1px solid #dfe7f1",
             ),
             rx.box(
                 rx.button(
@@ -531,16 +599,17 @@ def index() -> rx.Component:
                     size="2",
                     color_scheme="gray",
                     border_radius="999px",
+                    color=TEXT_PRIMARY,
                     _hover={"background_color": "rgba(148, 163, 184, 0.12)"},
                 ),
                 width="60px",
                 min_width="60px",
                 height="100vh",
-                border_right="1px solid rgba(148, 163, 184, 0.2)",
+                border_right="1px solid #dfe7f1",
                 display="flex",
                 align_items="center",
                 justify_content="center",
-                background_color="rgba(255, 255, 255, 0.9)",
+                background_color="#ffffff",
             ),
         ),
         rx.hstack(
@@ -548,14 +617,14 @@ def index() -> rx.Component:
                 render_preview(),
                 width=rx.cond(MarkerState.settings_visible, "37.5%", "50%"),
                 min_width="320px",
-                border_right="1px solid rgba(148, 163, 184, 0.2)",
-                background_color="rgba(255, 255, 255, 0.4)",
+                border_right="1px solid #dfe7f1",
+                background_color="#ffffff",
             ),
             rx.box(
                 render_results(),
                 width=rx.cond(MarkerState.settings_visible, "37.5%", "50%"),
                 min_width="320px",
-                background_color="rgba(255, 255, 255, 0.4)",
+                background_color="#ffffff",
             ),
             width="100%",
             flex="1",
@@ -564,5 +633,5 @@ def index() -> rx.Component:
         width="100%",
         height="100vh",
         spacing="0",
-        background="linear-gradient(180deg, rgba(241,245,249,0.96) 0%, rgba(248,250,252,0.98) 100%)",
+        background="linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
     )
