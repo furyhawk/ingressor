@@ -210,25 +210,84 @@ def render_preview() -> rx.Component:
 
 def render_results() -> rx.Component:
     return rx.vstack(
-        rx.heading("Conversion Results", size="4"),
+        rx.box(
+            rx.hstack(
+                rx.heading("Review conversion", size="4"),
+                rx.cond(
+                    MarkerState.review_status == "approved",
+                    rx.box(
+                        rx.text("Approved", size="1", weight="bold"),
+                        padding="0.35rem 0.75rem",
+                        border_radius="999px",
+                        background_color="rgba(34, 197, 94, 0.15)",
+                        color="#166534",
+                    ),
+                    rx.box(
+                        rx.text("Review pending", size="1", weight="bold"),
+                        padding="0.35rem 0.75rem",
+                        border_radius="999px",
+                        background_color="rgba(59, 130, 246, 0.12)",
+                        color="#1d4ed8",
+                    ),
+                ),
+                width="100%",
+                justify="space-between",
+                align="center",
+            ),
+            padding="1rem 1.25rem",
+            border_radius="16px",
+            background_color="rgba(15, 23, 42, 0.03)",
+            border="1px solid rgba(148, 163, 184, 0.2)",
+            width="100%",
+        ),
         rx.cond(
             MarkerState.conversion_result != "",
             rx.vstack(
+                rx.text(
+                    "Check the converted text below and make any final edits before approving it.",
+                    size="2",
+                    color="gray",
+                ),
+                rx.text_area(
+                    value=MarkerState.review_text,
+                    on_change=MarkerState.set_review_text,
+                    min_h="420px",
+                    width="100%",
+                    font_family="monospace",
+                    border_radius="12px",
+                    border="1px solid rgba(148, 163, 184, 0.35)",
+                    background_color="white",
+                    resize="vertical",
+                ),
+                rx.hstack(
+                    rx.button(
+                        "Approve conversion",
+                        on_click=MarkerState.approve_conversion,
+                        color_scheme="green",
+                        is_disabled=MarkerState.review_text == "",
+                    ),
+                    rx.button(
+                        "Reset review",
+                        on_click=MarkerState.reset_review,
+                        color_scheme="gray",
+                        variant="outline",
+                    ),
+                    spacing="3",
+                    wrap="wrap",
+                ),
                 rx.cond(
-                    MarkerState.result_format == "markdown",
-                    rx.markdown(MarkerState.conversion_result),
-                    rx.cond(
-                        MarkerState.result_format == "html",
-                        rx.html(MarkerState.conversion_result),
-                        rx.code(
-                            MarkerState.conversion_result,
-                            language=rx.cond(
-                                MarkerState.result_format == "json",
-                                "json",
-                                "text",
-                            ),
-                            width="100%",
+                    MarkerState.review_status == "approved",
+                    rx.box(
+                        rx.text(
+                            "This conversion is approved and ready to use.",
+                            color="green",
+                            size="2",
+                            weight="bold",
                         ),
+                        padding="0.75rem 1rem",
+                        border_radius="12px",
+                        background_color="rgba(34, 197, 94, 0.12)",
+                        width="100%",
                     ),
                 ),
                 spacing="4",

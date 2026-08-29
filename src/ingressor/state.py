@@ -44,6 +44,8 @@ class MarkerState(rx.State):
     processing_message: str = ""
 
     conversion_result: str = ""
+    review_text: str = ""
+    review_status: str = "pending"
     result_format: str = ""
     debug_pdf_image: str = ""
     debug_layout_image: str = ""
@@ -60,6 +62,9 @@ class MarkerState(rx.State):
 
         try:
             self.uploaded_file_data = await file.read()
+            self.conversion_result = ""
+            self.review_text = ""
+            self.review_status = "pending"
             self.current_page_image = ""
             self.debug_pdf_image = ""
             self.debug_layout_image = ""
@@ -133,11 +138,27 @@ class MarkerState(rx.State):
     def set_page_range(self, value: str):
         self.page_range = value
 
+    def set_review_text(self, value: str):
+        self.review_text = value
+        self.review_status = "pending"
+
     def set_output_format(self, value: str):
         self.output_format = value
 
     def set_mode(self, value: str):
         self.mode = value
+
+    def approve_conversion(self):
+        if not self.review_text:
+            return
+        self.conversion_result = self.review_text
+        self.review_status = "approved"
+        self.processing_message = "Conversion approved for review."
+
+    def reset_review(self):
+        self.review_text = self.conversion_result
+        self.review_status = "pending"
+        self.processing_message = "Review reset to the latest conversion."
 
     def toggle_use_llm(self):
         self.use_llm = not self.use_llm
@@ -198,6 +219,8 @@ class MarkerState(rx.State):
 
                 self.result_format = self.output_format
                 self.conversion_result = text if isinstance(text, str) else str(text)
+                self.review_text = self.conversion_result
+                self.review_status = "pending"
 
                 if self.debug:
                     self.processing_message = "Loading debug information..."
@@ -228,5 +251,7 @@ class MarkerState(rx.State):
         except (OSError, ValueError, RuntimeError, pypdfium2.PdfiumError) as exc:
             self.error_message = f"Conversion error: {exc}"
             self.conversion_result = ""
+            self.review_text = ""
+            self.review_status = "pending"
         finally:
             self.is_processing = False
