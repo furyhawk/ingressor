@@ -40,6 +40,8 @@ class MarkerState(rx.State):
     keep_headers_footers: bool = False
     debug: bool = False
 
+    settings_visible: bool = True
+
     is_processing: bool = False
     processing_message: str = ""
 
@@ -231,6 +233,9 @@ class MarkerState(rx.State):
 
     def toggle_debug(self):
         self.debug = not self.debug
+
+    def toggle_settings_visibility(self):
+        self.settings_visible = not self.settings_visible
 
     def _build_cli_options(self) -> dict[str, object]:
         return {
