@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import html
 import io
 import os
 import re
@@ -86,18 +85,17 @@ def markdown_insert_images(markdown: str, images: dict[str, Any]) -> str:
 
         markdown = markdown.replace(
             image_markdown,
-            _image_to_html(images[image_path], image_alt),
+            _image_to_markdown(images[image_path], image_alt),
         )
 
     return markdown
 
 
-def _image_to_html(image: Any, image_alt: str) -> str:
+def _image_to_markdown(image: Any, image_alt: str) -> str:
     img_bytes = io.BytesIO()
     image.save(img_bytes, format=settings.OUTPUT_IMAGE_FORMAT)
     encoded = base64.b64encode(img_bytes.getvalue()).decode(settings.OUTPUT_ENCODING)
-    escaped_alt = html.escape(image_alt, quote=True)
     return (
-        f'<img src="data:image/{settings.OUTPUT_IMAGE_FORMAT.lower()};base64,'
-        f'{encoded}" alt="{escaped_alt}" style="max-width: 100%;">'
+        f"![{image_alt}]"
+        f"(data:image/{settings.OUTPUT_IMAGE_FORMAT.lower()};base64,{encoded})"
     )
