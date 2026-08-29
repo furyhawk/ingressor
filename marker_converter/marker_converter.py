@@ -1,4 +1,5 @@
-"""Reflex entrypoint module expected by rxconfig.app_name."""
+"""Compatibility wrapper for legacy Reflex entrypoints."""
 
-from reflex_app import app
+from ingressor.app import app
 
+__all__ = ["app"]

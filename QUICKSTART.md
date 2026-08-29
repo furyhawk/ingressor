@@ -148,7 +148,7 @@ Once running:
 4. **Advanced Usage**
    - Check MIGRATION_GUIDE.md for architecture
    - Read README.md for detailed features
-   - Look at reflex_app.py for customization
+   - Look at [src/ingressor/](src/ingressor/) for customization
 
 ## Keyboard Shortcuts
 

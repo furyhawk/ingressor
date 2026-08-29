@@ -56,13 +56,12 @@ Welcome to the Marker PDF Converter - Reflex Framework! Here's a complete guide 
 
 ## 🏗️ Application Architecture
 
-### Main Application File
-**File:** [reflex_app.py](reflex_app.py)
-- MarkerState (state management)
-- UI component functions
-- Event handlers
-- Business logic
-- Configuration
+### Main Application Package
+**Files:** [src/ingressor/](src/ingressor/)
+- `state.py` for state management and event handlers
+- `components.py` for UI composition
+- `marker.py` for conversion helpers and model caching
+- `app.py` for Reflex bootstrapping
 
 **Sections:**
 1. State Management (MarkerState class)
@@ -171,11 +170,13 @@ Automated setup and launch with dependencies check
 ## 📁 Project Structure
 
 ```
-reflex-framework-rebuild/
+ingressor/
 ├── 🎯 CORE APPLICATION
-│   ├── reflex_app.py           (Main app - 650+ lines)
+│   ├── src/ingressor/          (Main app package)
+│   ├── reflex_app.py           (Legacy compatibility entrypoint)
+│   ├── marker_converter/       (Reflex entrypoint module)
 │   ├── rxconfig.py             (Framework config)
-│   └── requirements.txt         (Python deps)
+│   └── requirements.txt        (Python deps)
 │
 ├── 📖 DOCUMENTATION
 │   ├── README.md               (Main guide)

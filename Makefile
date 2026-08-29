@@ -27,12 +27,12 @@ build:
 	reflex build
 
 lint:
-	uvx black --check --target-version py311 reflex_app.py
-	uvx ruff check reflex_app.py
+	uvx black --check --target-version py311 src/ingressor reflex_app.py marker_converter/marker_converter.py
+	uvx ruff check src/ingressor reflex_app.py marker_converter/marker_converter.py
 
 format:
-	uvx black --target-version py311 reflex_app.py
-	uvx ruff check --fix reflex_app.py
+	uvx black --target-version py311 src/ingressor reflex_app.py marker_converter/marker_converter.py
+	uvx ruff check --fix src/ingressor reflex_app.py marker_converter/marker_converter.py
 
 clean:
 	rm -rf .web

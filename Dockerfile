@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
 # Copy project files
 COPY pyproject.toml requirements.txt README.md /app/
 COPY reflex_app.py rxconfig.py /app/
+COPY marker_converter/ /app/marker_converter/
+COPY src/ /app/src/
 COPY app/ /app/app/
 
 # Install Python dependencies
