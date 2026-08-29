@@ -46,7 +46,12 @@ def render_sidebar() -> rx.Component:
                             weight="bold",
                         ),
                         rx.text(
-                            f"Type: {MarkerState.uploaded_file_type or 'unknown'}",
+                            "Type: "
+                            + rx.cond(
+                                MarkerState.uploaded_file_type != "",
+                                MarkerState.uploaded_file_type,
+                                "unknown",
+                            ),
                             size="1",
                             color="gray",
                         ),
