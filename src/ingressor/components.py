@@ -244,20 +244,66 @@ def render_results() -> rx.Component:
             MarkerState.conversion_result != "",
             rx.vstack(
                 rx.text(
-                    "Check the converted text below and make any final edits before approving it.",
+                    "Review the conversion result below. You can edit the text if needed, then approve the conversion.",
                     size="2",
                     color="gray",
                 ),
-                rx.text_area(
-                    value=MarkerState.review_text,
-                    on_change=MarkerState.set_review_text,
-                    min_h="420px",
-                    width="100%",
-                    font_family="monospace",
+                rx.box(
+                    rx.vstack(
+                        rx.text(
+                            "Original Conversion",
+                            size="1",
+                            weight="bold",
+                            color="gray",
+                        ),
+                        rx.box(
+                            rx.text(
+                                MarkerState.original_conversion,
+                                size="2",
+                                font_family="monospace",
+                                color="gray",
+                            ),
+                            padding="0.75rem 1rem",
+                            border_radius="8px",
+                            background_color="rgba(148, 163, 184, 0.08)",
+                            border="1px solid rgba(148, 163, 184, 0.2)",
+                            max_h="200px",
+                            overflow_y="auto",
+                            width="100%",
+                        ),
+                        spacing="2",
+                        width="100%",
+                    ),
+                    padding="1rem",
                     border_radius="12px",
-                    border="1px solid rgba(148, 163, 184, 0.35)",
-                    background_color="white",
-                    resize="vertical",
+                    background_color="rgba(15, 23, 42, 0.02)",
+                    width="100%",
+                ),
+                rx.box(
+                    rx.vstack(
+                        rx.text(
+                            "Your Edits",
+                            size="1",
+                            weight="bold",
+                        ),
+                        rx.text_area(
+                            value=MarkerState.review_text,
+                            on_change=MarkerState.set_review_text,
+                            min_h="300px",
+                            width="100%",
+                            font_family="monospace",
+                            border_radius="12px",
+                            border="1px solid rgba(148, 163, 184, 0.35)",
+                            background_color="white",
+                            resize="vertical",
+                        ),
+                        spacing="2",
+                        width="100%",
+                    ),
+                    padding="1rem",
+                    border_radius="12px",
+                    background_color="rgba(15, 23, 42, 0.02)",
+                    width="100%",
                 ),
                 rx.hstack(
                     rx.button(
@@ -267,7 +313,7 @@ def render_results() -> rx.Component:
                         is_disabled=MarkerState.review_text == "",
                     ),
                     rx.button(
-                        "Reset review",
+                        "Reset to original",
                         on_click=MarkerState.reset_review,
                         color_scheme="gray",
                         variant="outline",
@@ -279,7 +325,7 @@ def render_results() -> rx.Component:
                     MarkerState.review_status == "approved",
                     rx.box(
                         rx.text(
-                            "This conversion is approved and ready to use.",
+                            "✓ Conversion approved and ready to export.",
                             color="green",
                             size="2",
                             weight="bold",

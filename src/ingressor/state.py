@@ -44,6 +44,7 @@ class MarkerState(rx.State):
     processing_message: str = ""
 
     conversion_result: str = ""
+    original_conversion: str = ""
     review_text: str = ""
     review_status: str = "pending"
     result_format: str = ""
@@ -63,6 +64,7 @@ class MarkerState(rx.State):
         try:
             self.uploaded_file_data = await file.read()
             self.conversion_result = ""
+            self.original_conversion = ""
             self.review_text = ""
             self.review_status = "pending"
             self.current_page_image = ""
@@ -153,12 +155,12 @@ class MarkerState(rx.State):
             return
         self.conversion_result = self.review_text
         self.review_status = "approved"
-        self.processing_message = "Conversion approved for review."
+        self.processing_message = "Conversion approved and ready to use."
 
     def reset_review(self):
-        self.review_text = self.conversion_result
+        self.review_text = self.original_conversion
         self.review_status = "pending"
-        self.processing_message = "Review reset to the latest conversion."
+        self.processing_message = "Review reset to the original conversion."
 
     def toggle_use_llm(self):
         self.use_llm = not self.use_llm
@@ -219,6 +221,7 @@ class MarkerState(rx.State):
 
                 self.result_format = self.output_format
                 self.conversion_result = text if isinstance(text, str) else str(text)
+                self.original_conversion = self.conversion_result
                 self.review_text = self.conversion_result
                 self.review_status = "pending"
 
@@ -251,6 +254,7 @@ class MarkerState(rx.State):
         except (OSError, ValueError, RuntimeError, pypdfium2.PdfiumError) as exc:
             self.error_message = f"Conversion error: {exc}"
             self.conversion_result = ""
+            self.original_conversion = ""
             self.review_text = ""
             self.review_status = "pending"
         finally:
