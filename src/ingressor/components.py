@@ -5,13 +5,8 @@ import reflex as rx
 from .state import MarkerState
 
 TEXT_PRIMARY = "#0f172a"
-TEXT_MUTED = "#334155"
-TEXT_SOFT = "#475569"
-SURFACE = "#f8fafc"
-SURFACE_STRONG = "#f1f5f9"
-SURFACE_PANEL = "#ffffff"
+TEXT_MUTED = "#1e293b"
 BORDER = "#cbd5e1"
-BORDER_STRONG = "#94a3b8"
 SUCCESS_DARK = "#166534"
 INFO_DARK = "#1d4ed8"
 ERROR_DARK = "#b91c1c"
@@ -21,11 +16,17 @@ def render_sidebar() -> rx.Component:
     return rx.vstack(
         rx.hstack(
             rx.vstack(
-                rx.heading("Marker PDF Converter", size="4", color=TEXT_PRIMARY),
+                rx.heading(
+                    "Marker PDF Converter",
+                    size="4",
+                    color=TEXT_PRIMARY,
+                    style={"color": TEXT_PRIMARY, "fontWeight": 700},
+                ),
                 rx.text(
                     "Upload a document, preview pages, then review the conversion before approving it.",
                     size="2",
                     color=TEXT_MUTED,
+                    style={"color": TEXT_MUTED},
                 ),
                 spacing="0",
             ),
@@ -44,11 +45,17 @@ def render_sidebar() -> rx.Component:
         ),
         rx.divider(),
         rx.vstack(
-            rx.text("Upload File", weight="bold", color=TEXT_PRIMARY),
+            rx.text(
+                "Upload File",
+                weight="bold",
+                color=TEXT_PRIMARY,
+                style={"color": TEXT_PRIMARY, "fontWeight": 700},
+            ),
             rx.text(
                 "Choose a PDF, image, or supported document to begin.",
                 size="1",
                 color=TEXT_MUTED,
+                style={"color": TEXT_MUTED},
             ),
             rx.upload(
                 rx.button("📁 Choose File", color_scheme="blue", width="100%"),
@@ -118,11 +125,17 @@ def render_sidebar() -> rx.Component:
         rx.cond(
             MarkerState.total_pages > 0,
             rx.vstack(
-                rx.text("Page Navigation", weight="bold", color=TEXT_PRIMARY),
+                rx.text(
+                    "Page Navigation",
+                    weight="bold",
+                    color=TEXT_PRIMARY,
+                    style={"color": TEXT_PRIMARY, "fontWeight": 700},
+                ),
                 rx.text(
                     "Use the arrows or enter a page number to update the preview.",
                     size="1",
                     color=TEXT_MUTED,
+                    style={"color": TEXT_MUTED},
                 ),
                 rx.hstack(
                     rx.button(
@@ -164,9 +177,20 @@ def render_sidebar() -> rx.Component:
         ),
         rx.divider(),
         rx.vstack(
-            rx.text("Output Options", weight="bold", color=TEXT_PRIMARY),
+            rx.text(
+                "Output Options",
+                weight="bold",
+                color=TEXT_PRIMARY,
+                style={"color": TEXT_PRIMARY, "fontWeight": 700},
+            ),
             rx.vstack(
-                rx.text("Output Format", size="2", weight="bold", color=TEXT_PRIMARY),
+                rx.text(
+                    "Output Format",
+                    size="2",
+                    weight="bold",
+                    color=TEXT_PRIMARY,
+                    style={"color": TEXT_PRIMARY, "fontWeight": 700},
+                ),
                 rx.select(
                     ["markdown", "json", "html", "chunks"],
                     value=MarkerState.output_format,
@@ -174,7 +198,13 @@ def render_sidebar() -> rx.Component:
                 ),
             ),
             rx.vstack(
-                rx.text("Processing Mode", size="2", weight="bold", color=TEXT_PRIMARY),
+                rx.text(
+                    "Processing Mode",
+                    size="2",
+                    weight="bold",
+                    color=TEXT_PRIMARY,
+                    style={"color": TEXT_PRIMARY, "fontWeight": 700},
+                ),
                 rx.select(
                     ["auto", "balanced", "fast"],
                     value=MarkerState.mode,
@@ -186,10 +216,17 @@ def render_sidebar() -> rx.Component:
                     "'fast' uses lightweight CPU detectors and only OCRs garbled content.",
                     size="1",
                     color=TEXT_MUTED,
+                    style={"color": TEXT_MUTED},
                 ),
             ),
             rx.vstack(
-                rx.text("Page Range", size="2", weight="bold", color=TEXT_PRIMARY),
+                rx.text(
+                    "Page Range",
+                    size="2",
+                    weight="bold",
+                    color=TEXT_PRIMARY,
+                    style={"color": TEXT_PRIMARY, "fontWeight": 700},
+                ),
                 rx.input(
                     value=MarkerState.page_range,
                     on_change=MarkerState.set_page_range,
@@ -211,36 +248,47 @@ def render_sidebar() -> rx.Component:
         ),
         rx.divider(),
         rx.vstack(
-            rx.text("Processing Options", weight="bold", color=TEXT_PRIMARY),
+            rx.text(
+                "Processing Options",
+                weight="bold",
+                color=TEXT_PRIMARY,
+                style={"color": TEXT_PRIMARY, "fontWeight": 700},
+            ),
             rx.checkbox(
                 "Use LLM",
                 is_checked=MarkerState.use_llm,
                 on_change=lambda _: MarkerState.toggle_use_llm(),
+                color=TEXT_PRIMARY,
             ),
             rx.checkbox(
                 "Force OCR",
                 is_checked=MarkerState.force_ocr,
                 on_change=lambda _: MarkerState.toggle_force_ocr(),
+                color=TEXT_PRIMARY,
             ),
             rx.checkbox(
                 "Disable OCR",
                 is_checked=MarkerState.disable_ocr,
                 on_change=lambda _: MarkerState.toggle_disable_ocr(),
+                color=TEXT_PRIMARY,
             ),
             rx.checkbox(
                 "Strip Existing OCR",
                 is_checked=MarkerState.strip_existing_ocr,
                 on_change=lambda _: MarkerState.toggle_strip_existing_ocr(),
+                color=TEXT_PRIMARY,
             ),
             rx.checkbox(
                 "Show Page Headers/Footers",
                 is_checked=MarkerState.keep_headers_footers,
                 on_change=lambda _: MarkerState.toggle_keep_headers_footers(),
+                color=TEXT_PRIMARY,
             ),
             rx.checkbox(
                 "Debug Mode",
                 is_checked=MarkerState.debug,
                 on_change=lambda _: MarkerState.toggle_debug(),
+                color=TEXT_PRIMARY,
             ),
             spacing="3",
             padding="1rem",
