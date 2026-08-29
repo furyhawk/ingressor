@@ -210,25 +210,130 @@ def render_preview() -> rx.Component:
 
 def render_results() -> rx.Component:
     return rx.vstack(
-        rx.heading("Conversion Results", size="4"),
+        rx.box(
+            rx.hstack(
+                rx.heading("Review conversion", size="4"),
+                rx.cond(
+                    MarkerState.review_status == "approved",
+                    rx.box(
+                        rx.text("Approved", size="1", weight="bold"),
+                        padding="0.35rem 0.75rem",
+                        border_radius="999px",
+                        background_color="rgba(34, 197, 94, 0.15)",
+                        color="#166534",
+                    ),
+                    rx.box(
+                        rx.text("Review pending", size="1", weight="bold"),
+                        padding="0.35rem 0.75rem",
+                        border_radius="999px",
+                        background_color="rgba(59, 130, 246, 0.12)",
+                        color="#1d4ed8",
+                    ),
+                ),
+                width="100%",
+                justify="space-between",
+                align="center",
+            ),
+            padding="1rem 1.25rem",
+            border_radius="16px",
+            background_color="rgba(15, 23, 42, 0.03)",
+            border="1px solid rgba(148, 163, 184, 0.2)",
+            width="100%",
+        ),
         rx.cond(
             MarkerState.conversion_result != "",
             rx.vstack(
-                rx.cond(
-                    MarkerState.result_format == "markdown",
-                    rx.markdown(MarkerState.conversion_result),
-                    rx.cond(
-                        MarkerState.result_format == "html",
-                        rx.html(MarkerState.conversion_result),
-                        rx.code(
-                            MarkerState.conversion_result,
-                            language=rx.cond(
-                                MarkerState.result_format == "json",
-                                "json",
-                                "text",
+                rx.text(
+                    "Review the conversion result below. You can edit the text if needed, then approve the conversion.",
+                    size="2",
+                    color="gray",
+                ),
+                rx.box(
+                    rx.vstack(
+                        rx.text(
+                            "Original Conversion",
+                            size="1",
+                            weight="bold",
+                            color="gray",
+                        ),
+                        rx.box(
+                            rx.text(
+                                MarkerState.original_conversion,
+                                size="2",
+                                font_family="monospace",
+                                color="gray",
                             ),
+                            padding="0.75rem 1rem",
+                            border_radius="8px",
+                            background_color="rgba(148, 163, 184, 0.08)",
+                            border="1px solid rgba(148, 163, 184, 0.2)",
+                            max_h="200px",
+                            overflow_y="auto",
                             width="100%",
                         ),
+                        spacing="2",
+                        width="100%",
+                    ),
+                    padding="1rem",
+                    border_radius="12px",
+                    background_color="rgba(15, 23, 42, 0.02)",
+                    width="100%",
+                ),
+                rx.box(
+                    rx.vstack(
+                        rx.text(
+                            "Your Edits",
+                            size="1",
+                            weight="bold",
+                        ),
+                        rx.text_area(
+                            value=MarkerState.review_text,
+                            on_change=MarkerState.set_review_text,
+                            min_h="300px",
+                            width="100%",
+                            font_family="monospace",
+                            border_radius="12px",
+                            border="1px solid rgba(148, 163, 184, 0.35)",
+                            background_color="white",
+                            resize="vertical",
+                        ),
+                        spacing="2",
+                        width="100%",
+                    ),
+                    padding="1rem",
+                    border_radius="12px",
+                    background_color="rgba(15, 23, 42, 0.02)",
+                    width="100%",
+                ),
+                rx.hstack(
+                    rx.button(
+                        "Approve conversion",
+                        on_click=MarkerState.approve_conversion,
+                        color_scheme="green",
+                        is_disabled=MarkerState.review_text == "",
+                    ),
+                    rx.button(
+                        "Reset to original",
+                        on_click=MarkerState.reset_review,
+                        color_scheme="gray",
+                        variant="outline",
+                    ),
+                    spacing="3",
+                    wrap="wrap",
+                ),
+                rx.cond(
+                    MarkerState.review_status == "approved",
+                    rx.box(
+                        rx.text(
+                            "✓ Conversion approved and ready to export.",
+                            color="green",
+                            size="2",
+                            weight="bold",
+                        ),
+                        padding="0.75rem 1rem",
+                        border_radius="12px",
+                        background_color="rgba(34, 197, 94, 0.12)",
+                        width="100%",
                     ),
                 ),
                 spacing="4",
