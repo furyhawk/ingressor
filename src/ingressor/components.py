@@ -430,11 +430,7 @@ def render_results() -> rx.Component:
             rx.vstack(
                 rx.cond(
                     MarkerState.result_format == "markdown",
-                    rx.markdown(
-                        MarkerState.conversion_result,
-                        use_raw=True,
-                        use_unwrap_images=False,
-                    ),
+                    rx.markdown(MarkerState.conversion_result),
                     rx.cond(
                         MarkerState.result_format == "html",
                     rx.code(MarkerState.conversion_result, language="html", width="100%"),
