@@ -73,8 +73,7 @@ reflex run --env prod
    - Select your PDF, image, or supported document format
 
 2. **Navigate (PDF only)**
-   - Use the page number input or the arrow buttons to view different pages
-   - Page navigation is 1-based; page ranges remain zero-based
+   - Use the page number input or the arrow buttons to view different pages (page navigation is 1-based; page ranges remain zero-based)
    - Preview updates in the left panel
 
 3. **Configure Conversion Options**
