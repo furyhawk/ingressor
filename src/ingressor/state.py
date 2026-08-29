@@ -80,6 +80,18 @@ class MarkerState(rx.State):
             else:
                 self.processing_message = ""
         except (OSError, ValueError) as exc:
+            self.uploaded_file_data = None
+            self.uploaded_file_name = ""
+            self.uploaded_file_type = ""
+            self.total_pages = 0
+            self.page_number = 0
+            self.page_range = "0-0"
+            self.current_page_image = ""
+            self.conversion_result = ""
+            self.original_conversion = ""
+            self.review_text = ""
+            self.review_status = "pending"
+            self.processing_message = ""
             self.error_message = f"Error reading file: {exc}"
 
     def _update_page_info(self) -> None:
@@ -144,6 +156,7 @@ class MarkerState(rx.State):
             if 1 <= page_num <= self.total_pages:
                 self.page_number = page_num - 1
                 self.page_range = f"{self.page_number}-{self.page_number}"
+                self.error_message = ""
                 self._load_page_image()
             else:
                 self.error_message = f"Page number must be between 1 and {self.total_pages}"
