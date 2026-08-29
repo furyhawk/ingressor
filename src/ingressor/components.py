@@ -424,148 +424,33 @@ def render_preview() -> rx.Component:
 
 def render_results() -> rx.Component:
     return rx.vstack(
-        rx.box(
-            rx.hstack(
-                rx.heading("Review conversion", size="4", color=TEXT_PRIMARY),
-                rx.cond(
-                    MarkerState.review_status == "approved",
-                    rx.box(
-                        rx.text("Approved", size="1", weight="bold"),
-                        padding="0.35rem 0.75rem",
-                        border_radius="999px",
-                        background_color="rgba(22, 101, 52, 0.12)",
-                        color=SUCCESS_DARK,
-                    ),
-                    rx.box(
-                        rx.text("Review pending", size="1", weight="bold"),
-                        padding="0.35rem 0.75rem",
-                        border_radius="999px",
-                        background_color="rgba(29, 78, 216, 0.1)",
-                        color=INFO_DARK,
-                    ),
-                ),
-                width="100%",
-                justify="between",
-                align="center",
-            ),
-            padding="1rem 1.25rem",
-            border_radius="16px",
-            background_color="#f8fafc",
-            border="1px solid #dfe7f1",
-            width="100%",
-        ),
+        rx.heading("Conversion Results", size="4"),
         rx.cond(
             MarkerState.conversion_result != "",
             rx.vstack(
-                rx.text(
-                    "Review the conversion result below. You can edit the text if needed, then approve the conversion.",
-                    size="2",
-                    color=TEXT_MUTED,
-                ),
-                rx.box(
-                    rx.vstack(
-                        rx.text(
-                            "Original Conversion",
-                            size="1",
-                            weight="bold",
-                            color=TEXT_MUTED,
-                        ),
-                        rx.box(
-                            rx.text(
-                                MarkerState.original_conversion,
-                                size="2",
-                                font_family="monospace",
-                                color=TEXT_PRIMARY,
-                            ),
-                            padding="0.75rem 1rem",
-                            border_radius="8px",
-                            background_color="#f1f5f9",
-                            border="1px solid #cbd5e1",
-                            max_h="200px",
-                            overflow_y="auto",
-                            width="100%",
-                        ),
-                        spacing="2",
-                        width="100%",
-                    ),
-                    padding="1rem",
-                    border_radius="12px",
-                    background_color="#f8fafc",
-                    width="100%",
-                ),
-                rx.box(
-                    rx.vstack(
-                        rx.text(
-                            "Your Edits",
-                            size="1",
-                            weight="bold",
-                            color=TEXT_PRIMARY,
-                        ),
-                        rx.text_area(
-                            value=MarkerState.review_text,
-                            on_change=MarkerState.set_review_text,
-                            min_h="300px",
-                            width="100%",
-                            font_family="monospace",
-                            border_radius="12px",
-                            border="1px solid #94a3b8",
-                            background_color="#f8fafc",
-                            resize="vertical",
-                            box_shadow="inset 0 1px 2px rgba(15, 23, 42, 0.05)",
-                            color=TEXT_PRIMARY,
-                        ),
-                        spacing="2",
-                        width="100%",
-                    ),
-                    padding="1rem",
-                    border_radius="12px",
-                    background_color="#f8fafc",
-                    width="100%",
-                ),
-                rx.hstack(
-                    rx.button(
-                        "Approve conversion",
-                        on_click=MarkerState.approve_conversion,
-                        color_scheme="green",
-                        is_disabled=MarkerState.review_text == "",
-                        border_radius="10px",
-                    ),
-                    rx.button(
-                        "Reset to original",
-                        on_click=MarkerState.reset_review,
-                        color_scheme="gray",
-                        variant="outline",
-                        border_radius="10px",
-                        color=TEXT_PRIMARY,
-                    ),
-                    spacing="3",
-                    wrap="wrap",
-                ),
                 rx.cond(
-                    MarkerState.review_status == "approved",
-                    rx.box(
-                        rx.text(
-                            "✓ Conversion approved and ready to export.",
-                            color=SUCCESS_DARK,
-                            size="2",
-                            weight="bold",
+                    MarkerState.result_format == "markdown",
+                    rx.markdown(MarkerState.conversion_result),
+                    rx.cond(
+                        MarkerState.result_format == "html",
+                    rx.code(MarkerState.conversion_result, language="html", width="100%"),
+                        rx.code(
+                            MarkerState.conversion_result,
+                            language=rx.cond(
+                                MarkerState.result_format == "json",
+                                "json",
+                                "text",
+                            ),
+                            width="100%",
                         ),
-                        padding="0.75rem 1rem",
-                        border_radius="12px",
-                        background_color="rgba(22, 101, 52, 0.12)",
-                        width="100%",
                     ),
                 ),
                 spacing="4",
             ),
             rx.box(
-                rx.text("Results will appear here", color=TEXT_MUTED),
+                rx.text("Results will appear here", color="gray"),
                 padding="2em",
                 text_align="center",
-                border="1px dashed #94a3b8",
-                border_radius="16px",
-                background_color="#f8fafc",
-                width="100%",
             ),
         ),
         spacing="5",
@@ -573,7 +458,6 @@ def render_results() -> rx.Component:
         width="100%",
         height="100vh",
         overflow_y="auto",
-        background_color="#f8fafc",
     )
 
 
