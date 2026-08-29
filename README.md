@@ -73,7 +73,7 @@ reflex run --env prod
    - Select your PDF, image, or supported document format
 
 2. **Navigate (PDF only)**
-   - Use the page number input to view different pages
+   - Use the page number input or the arrow buttons to view different pages (page navigation is 1-based; page ranges remain zero-based)
    - Preview updates in the left panel
 
 3. **Configure Conversion Options**
@@ -82,7 +82,7 @@ reflex run --env prod
      - `auto`: Automatically selects based on device (GPU = balanced, CPU/MPS = fast)
      - `balanced`: Uses VLM layout model + full-page OCR (best on GPU)
      - `fast`: Lightweight CPU detectors, only OCRs garbled/empty content
-   - **Page Range**: Specify which pages to process (e.g., "0,5-10,20")
+   - **Page Range**: Specify which pages to process with zero-based ranges (e.g., "0,5-10,20")
 
 4. **Configure Advanced Options**
    - **Use LLM**: Enable for higher quality processing

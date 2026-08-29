@@ -67,7 +67,7 @@ That's it! 🎉
 
 ### Extract Multiple Pages
 1. Upload PDF
-2. Enter page range: "0-5" (pages 0-5)
+2. Enter page range: "0-5" (zero-based pages 0-5)
 3. Select desired output format
 4. Click "Run Conversion"
 

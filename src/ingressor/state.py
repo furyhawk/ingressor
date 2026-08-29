@@ -58,11 +58,12 @@ class MarkerState(rx.State):
             return
 
         file = files[0]
-        self.uploaded_file_name = file.name
-        self.uploaded_file_type = mimetypes.guess_type(file.name)[0] or ""
 
         try:
-            self.uploaded_file_data = await file.read()
+            file_data = await file.read()
+            self.uploaded_file_name = file.name
+            self.uploaded_file_type = mimetypes.guess_type(file.name)[0] or ""
+            self.uploaded_file_data = file_data
             self.conversion_result = ""
             self.original_conversion = ""
             self.review_text = ""
@@ -70,9 +71,27 @@ class MarkerState(rx.State):
             self.current_page_image = ""
             self.debug_pdf_image = ""
             self.debug_layout_image = ""
-            self._update_page_info()
             self.error_message = ""
+            self._update_page_info()
+            if not self.error_message:
+                self.processing_message = (
+                    f"Loaded {file.name}. Configure options, then run conversion."
+                )
+            else:
+                self.processing_message = ""
         except (OSError, ValueError) as exc:
+            self.uploaded_file_data = None
+            self.uploaded_file_name = ""
+            self.uploaded_file_type = ""
+            self.total_pages = 0
+            self.page_number = 0
+            self.page_range = "0-0"
+            self.current_page_image = ""
+            self.conversion_result = ""
+            self.original_conversion = ""
+            self.review_text = ""
+            self.review_status = "pending"
+            self.processing_message = ""
             self.error_message = f"Error reading file: {exc}"
 
     def _update_page_info(self) -> None:
@@ -83,13 +102,15 @@ class MarkerState(rx.State):
             if "pdf" in self.uploaded_file_type:
                 stream = io.BytesIO(self.uploaded_file_data)
                 doc = pypdfium2.PdfDocument(stream)
-                self.total_pages = max(len(doc) - 1, 0)
+                self.total_pages = len(doc)
+                self.page_number = 0
+                self.page_range = "0-0"
+                self._load_page_image()
             else:
                 self.total_pages = 0
-
-            self.page_number = 0
-            self.page_range = "0-0"
-            self._load_page_image()
+                self.page_number = 0
+                self.page_range = "0-0"
+                self._load_page_image()
         except (OSError, ValueError, pypdfium2.PdfiumError) as exc:
             self.error_message = f"Error processing file: {exc}"
 
@@ -128,17 +149,48 @@ class MarkerState(rx.State):
     def set_page_number(self, value: str):
         try:
             page_num = int(value)
-            if 0 <= page_num <= self.total_pages:
-                self.page_number = page_num
-                self.page_range = f"{page_num}-{page_num}"
+            if self.total_pages == 0:
+                self.error_message = "Upload a PDF to navigate pages"
+                return
+
+            if 1 <= page_num <= self.total_pages:
+                self.page_number = page_num - 1
+                self.page_range = f"{self.page_number}-{self.page_number}"
+                self.error_message = ""
                 self._load_page_image()
             else:
-                self.error_message = f"Page number must be between 0 and {self.total_pages}"
+                self.error_message = f"Page number must be between 1 and {self.total_pages}"
         except ValueError:
             self.error_message = "Invalid page number"
 
     def set_page_range(self, value: str):
         self.page_range = value
+
+    def go_to_previous_page(self):
+        if self.total_pages == 0:
+            self.error_message = "Upload a PDF to navigate pages"
+            return
+        if self.page_number == 0:
+            self.error_message = "Already on the first page"
+            return
+
+        self.page_number -= 1
+        self.page_range = f"{self.page_number}-{self.page_number}"
+        self.error_message = ""
+        self._load_page_image()
+
+    def go_to_next_page(self):
+        if self.total_pages == 0:
+            self.error_message = "Upload a PDF to navigate pages"
+            return
+        if self.page_number >= self.total_pages - 1:
+            self.error_message = "Already on the last page"
+            return
+
+        self.page_number += 1
+        self.page_range = f"{self.page_number}-{self.page_number}"
+        self.error_message = ""
+        self._load_page_image()
 
     def set_review_text(self, value: str):
         self.review_text = value
@@ -201,7 +253,7 @@ class MarkerState(rx.State):
             return
 
         self.is_processing = True
-        self.processing_message = "Processing file..."
+        self.processing_message = "Processing file and preparing the review result..."
         self.error_message = ""
 
         try:
@@ -250,7 +302,7 @@ class MarkerState(rx.State):
                                 layout_image_path
                             )
 
-                self.processing_message = "Done!"
+                self.processing_message = "Conversion complete. Review and approve the result below."
         except (OSError, ValueError, RuntimeError, pypdfium2.PdfiumError) as exc:
             self.error_message = f"Conversion error: {exc}"
             self.conversion_result = ""

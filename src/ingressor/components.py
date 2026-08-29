@@ -8,9 +8,19 @@ from .state import MarkerState
 def render_sidebar() -> rx.Component:
     return rx.vstack(
         rx.heading("Marker PDF Converter", size="4"),
+        rx.text(
+            "Upload a document, preview pages, then review the conversion before approving it.",
+            size="2",
+            color="gray",
+        ),
         rx.divider(),
         rx.vstack(
             rx.text("Upload File", weight="bold"),
+            rx.text(
+                "Choose a PDF, image, or supported document to begin.",
+                size="1",
+                color="gray",
+            ),
             rx.upload(
                 rx.button("📁 Choose File", color_scheme="blue"),
                 id="file_upload",
@@ -28,10 +38,32 @@ def render_sidebar() -> rx.Component:
             rx.cond(
                 MarkerState.uploaded_file_name != "",
                 rx.box(
-                    rx.text(
-                        f"📄 {MarkerState.uploaded_file_name}",
-                        size="2",
-                        color="green",
+                    rx.vstack(
+                        rx.text(
+                            f"📄 {MarkerState.uploaded_file_name}",
+                            size="2",
+                            color="green",
+                            weight="bold",
+                        ),
+                        rx.text(
+                            f"Type: {MarkerState.uploaded_file_type or 'unknown'}",
+                            size="1",
+                            color="gray",
+                        ),
+                        rx.cond(
+                            MarkerState.total_pages > 0,
+                            rx.text(
+                                f"Pages: {MarkerState.total_pages}",
+                                size="1",
+                                color="gray",
+                            ),
+                            rx.text(
+                                "Single-page preview",
+                                size="1",
+                                color="gray",
+                            ),
+                        ),
+                        spacing="1",
                     ),
                     padding="0.5em",
                     border_radius="0.25em",
@@ -45,21 +77,41 @@ def render_sidebar() -> rx.Component:
             MarkerState.total_pages > 0,
             rx.vstack(
                 rx.text("Page Navigation", weight="bold"),
+                rx.text(
+                    "Use the arrows or enter a page number to update the preview.",
+                    size="1",
+                    color="gray",
+                ),
                 rx.hstack(
+                    rx.button(
+                        "◀",
+                        on_click=MarkerState.go_to_previous_page,
+                        variant="outline",
+                        is_disabled=MarkerState.page_number == 0,
+                    ),
                     rx.input(
                         value=rx.cond(
                             MarkerState.total_pages > 0,
-                            MarkerState.page_number.to_string(),
-                            "0",
+                            (MarkerState.page_number + 1).to_string(),
+                            "1",
                         ),
                         on_change=MarkerState.set_page_number,
                         type_="number",
-                        width="100%",
+                        min="1",
+                        max=MarkerState.total_pages,
+                        width="5.5em",
                     ),
-                    rx.text(f"/ {MarkerState.total_pages}", size="2"),
+                    rx.text(f"of {MarkerState.total_pages}", size="2"),
+                    rx.button(
+                        "▶",
+                        on_click=MarkerState.go_to_next_page,
+                        variant="outline",
+                        is_disabled=MarkerState.page_number + 1 >= MarkerState.total_pages,
+                    ),
                     width="100%",
+                    align="center",
                 ),
-                spacing="2",
+                spacing="3",
             ),
         ),
         rx.divider(),
@@ -144,6 +196,7 @@ def render_sidebar() -> rx.Component:
             on_click=MarkerState.run_conversion,
             width="100%",
             is_loading=MarkerState.is_processing,
+            is_disabled=MarkerState.uploaded_file_name == "",
             color_scheme="green",
             size="4",
         ),
@@ -154,6 +207,19 @@ def render_sidebar() -> rx.Component:
                 padding="1em",
                 border_radius="0.5em",
                 background_color="rgba(100, 150, 255, 0.1)",
+            ),
+        ),
+        rx.cond(
+            MarkerState.uploaded_file_name == "",
+            rx.box(
+                rx.text(
+                    "Upload a file to enable conversion.",
+                    size="2",
+                    color="gray",
+                ),
+                padding="1em",
+                border_radius="0.5em",
+                background_color="rgba(148, 163, 184, 0.08)",
             ),
         ),
         rx.cond(
