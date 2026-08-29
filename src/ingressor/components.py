@@ -433,7 +433,7 @@ def render_results() -> rx.Component:
                     rx.markdown(MarkerState.conversion_result),
                     rx.cond(
                         MarkerState.result_format == "html",
-                        rx.html(MarkerState.conversion_result),
+                    rx.code(MarkerState.conversion_result, language="html", width="100%"),
                         rx.code(
                             MarkerState.conversion_result,
                             language=rx.cond(
