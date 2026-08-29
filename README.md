@@ -140,15 +140,17 @@ reflex run --env prod
 ### File Structure
 
 ```
-reflex-framework-rebuild/
-├── reflex_app.py          # Main application (Reflex implementation)
+ingressor/
+├── src/ingressor/         # Main application package
+│   ├── app.py             # Reflex app bootstrap
+│   ├── components.py      # UI composition
+│   ├── marker.py          # Marker conversion helpers
+│   └── state.py           # Reflex state and actions
+├── reflex_app.py          # Legacy compatibility entrypoint
+├── marker_converter/      # Reflex entrypoint module
 ├── rxconfig.py            # Reflex configuration
 ├── pyproject.toml         # Project dependencies
-├── app/                   # Original Streamlit app (legacy)
-│   ├── streamlit_app.py
-│   ├── common.py
-│   └── convert_single.py
-└── notebooks/             # Jupyter notebooks
+└── app/                   # Legacy Streamlit helpers
 ```
 
 ## Technology Stack

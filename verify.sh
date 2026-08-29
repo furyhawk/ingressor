@@ -16,6 +16,12 @@ WARNINGS=0
 echo "📄 Checking Python files..."
 files=(
     "reflex_app.py"
+    "marker_converter/marker_converter.py"
+    "src/ingressor/__init__.py"
+    "src/ingressor/app.py"
+    "src/ingressor/components.py"
+    "src/ingressor/marker.py"
+    "src/ingressor/state.py"
     "rxconfig.py"
     "pyproject.toml"
     "requirements.txt"
@@ -80,6 +86,13 @@ if python -m py_compile reflex_app.py 2>/dev/null; then
     echo "  ✅ reflex_app.py syntax valid"
 else
     echo "  ❌ reflex_app.py has syntax errors"
+    ERRORS=$((ERRORS+1))
+fi
+
+if python -m py_compile marker_converter/marker_converter.py src/ingressor/*.py 2>/dev/null; then
+    echo "  ✅ package entrypoints syntax valid"
+else
+    echo "  ❌ package entrypoints have syntax errors"
     ERRORS=$((ERRORS+1))
 fi
 
