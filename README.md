@@ -119,6 +119,37 @@ reflex run --env prod
 - Useful for RAG (Retrieval-Augmented Generation)
 - JSON format with chunk metadata
 
+## Parts lists: Markdown tables → Excel
+
+The `marker` output for parts / servicing manuals keeps the tables as Markdown.
+`scripts/md_tables_to_excel.py` turns those tables into a ready-to-order Excel
+spare-parts list:
+
+* it extracts every table and remembers the **heading above it as its
+  component** (that header is written on the first row of each worksheet);
+* for every table that has a dedicated **Part Number** column it keeps **only
+  the rows that carry a part number** (blank / duplicate rows are dropped,
+  while wrapped text and quantities that belong to a part are merged back);
+* it writes **one worksheet per component** (sheet name = component heading)
+  plus an `Index` overview sheet.
+
+```bash
+# default: one sheet per component table, only part-number rows
+python scripts/md_tables_to_excel.py "conversion_results/1. Servicing Manual TAM 7002.pdf 01072026/1. Servicing Manual TAM 7002.pdf 01072026.md"
+
+# keep the non-part tables too (e.g. maintenance schedules)
+python scripts/md_tables_to_excel.py manual.md --include-other-tables -o parts.xlsx
+
+# scan a whole folder of markdown files
+python scripts/md_tables_to_excel.py conversion_results -o all_manuals.xlsx
+```
+
+The parser deliberately targets the output that `marker` produces: headers can
+span several rows, some converters merge the header with the first data row,
+and cell text can wrap over several visual rows. Tables where several parts
+were collapsed into a single header line (e.g. `Item # 2 3 4 …`) are expanded on
+a best-effort basis and reported in the console so they can be double-checked.
+
 ## Architecture
 
 ### Components
