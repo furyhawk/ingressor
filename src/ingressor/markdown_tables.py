@@ -1,6 +1,6 @@
 """Extract tables from Markdown, associate each table with its component
-heading, filter the rows that carry a Part Number, and export everything to an
-Excel workbook (one worksheet per component table).
+heading, filter the rows that identify a part/component, and export everything
+to an Excel workbook (one worksheet per component table).
 
 This module is deliberately dependency-light: it only needs ``openpyxl`` (for
 the Excel export).  Everything else is the standard library, so the parsing
@@ -13,6 +13,17 @@ per machine component/sub-assembly.  The Markdown heading(s) that precede a
 table describe which component the parts in the table belong to.  Each table is
 therefore tagged with that heading (its "component"), and every exported row
 can be traced back to the component that uses it.
+
+Two kinds of tables identify parts/components and are exported by default:
+
+* **parts tables** have a dedicated Part-Number column (``Part Number``,
+  ``Part No.``, ``PN``, ``Réf``, ``Code``, ...).  Only the rows that carry a
+  part number are exported.
+* **locator tables** have a Landmark / Rep. column (``Landmark``, ``Repère``,
+  ``Rep``, ...) that points at parts or components on an illustration.  Only
+  the rows that carry a landmark are exported, and GUINAULT-style two-panel
+  legends (``Landmark | Description | Landmark | Description``) are flattened
+  into one sorted ``Landmark | Description`` list.
 
 Heuristics used on real (messy) converter output
 -------------------------------------------------
@@ -30,6 +41,10 @@ Heuristics used on real (messy) converter output
 * If a Part Number cell still contains several space-separated part numbers
   (several parts collapsed into one line), it is expanded into one row per part
   number on a best-effort basis and a warning is recorded.
+* Component headings are sometimes printed without a ``#`` prefix (bold-only
+  lines like ``**12) Valve …**``, plain ``a) Sub part`` labels, or decimal
+  numbered lines like ``1.8.1.1RS678 : engine relaying``); they are turned into
+  pseudo-headings so the following table can be named after them.
 """
 
 from __future__ import annotations
@@ -51,11 +66,13 @@ from openpyxl.utils import get_column_letter
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _SPAN_RE = re.compile(r"<span[^>]*>.*?</span>", re.DOTALL)
 _WS_RE = re.compile(r"[ \t\r\n]+")
+_CTRL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _MD_EMPH_RE = re.compile(r"(?<!\*)\*{1,2}(?!\*)")
 
 
 def clean_text(raw: object) -> str:
-    """Strip HTML tags / markdown emphasis, collapse whitespace, trim."""
+    """Strip HTML tags / markdown emphasis, drop control chars, collapse
+    whitespace, trim."""
     if raw is None:
         return ""
     s = str(raw)
@@ -63,6 +80,7 @@ def clean_text(raw: object) -> str:
     s = _HTML_TAG_RE.sub(" ", s)
     s = _MD_EMPH_RE.sub("", s)
     s = html.unescape(s)
+    s = _CTRL_RE.sub("", s)
     s = _WS_RE.sub(" ", s)
     return s.strip()
 
@@ -141,6 +159,10 @@ _HEADER_VOCAB = [
     ("Ref.", "partnumber"),
     ("Ref", "partnumber"),
     ("PN", "partnumber"),
+    ("Landmark", "landmark"),
+    ("Repère", "landmark"),
+    ("Rep.", "landmark"),
+    ("Rep", "landmark"),
     ("Désignation", "designation"),
     ("Designation", "designation"),
     ("Description", "description"),
@@ -171,7 +193,9 @@ def _split_label_cell(cell: str) -> tuple[Optional[str], str]:
 
 def classify_header_cell(cell: object) -> Optional[str]:
     """Return a canonical group for a header cell: item / partnumber /
-    designation / description / qty, or None when it is not a header."""
+    landmark / designation / description / qty, or None when it is not a
+    header.  ``landmark`` means a figure marker column such as "Landmark" /
+    "Rep." used to point at parts or components on an illustration."""
     label, _rest = _split_label_cell(clean_text(cell))
     if label is None:
         return None
@@ -189,6 +213,20 @@ def classify_header_cell(cell: object) -> Optional[str]:
 _HEADING_ATX_RE = re.compile(r"^(#{1,6})\s+(.*)$")
 _BOLD_HEADING_RE = re.compile(r"^\*\*.+\*\*$")
 _LIST_LABEL_RE = re.compile(r"^([A-Za-z0-9]{1,3})\)\s+\S.{0,120}$")
+# decimal-numbered sub-section line that lost its "#" prefix, e.g.
+# "1.8.1.1RS678 : engine relaying" or "1.2.3 Some title"
+_DOTTED_HEADING_RE = re.compile(
+    r"^\d{1,2}(\.\d{1,2}){1,4}[A-Za-z0-9_\-/]{0,12}?\s*:?\s*[A-ZÀ-Þ].{2,90}$"
+)
+# an inline numbered figure legend (not a table), e.g.
+# "1_Expansion tank/cooling pump hose 2_Air/engine cooling air hose 3_Air/turbo ..."
+_LEGEND_MARKER_RE = re.compile(r"(?:^|(?<=\s))(\d{1,3})(?:\\_|_)(?=[A-Za-zÀ-ÿ«(])")
+# a small standalone line that qualifies a view, e.g. "(left view)"
+_VIEW_LABEL_RE = re.compile(
+    r"^\(?(?:left|right|front|rear|top|bottom|upper|lower|front left|front right|rear left|rear right)"
+    r"(?:\s+view)?\)?$",
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -206,7 +244,9 @@ class Table:
     component_path: list[str]  # active headings, ancestor -> leaf
     headers: list[str]         # final column labels (as printed in the doc)
     pn_col: Optional[int]      # index of the Part-Number column, if any
-    rows: list[list[str]]      # cleaned data rows (already filtered / rebuilt)
+    loc_cols: list[int] = field(default_factory=list)  # Landmark/Rep. columns
+    kind: str = "other"        # "parts" | "locator" | "other"
+    rows: list[list[str]] = field(default_factory=list)  # cleaned data rows
     raw_row_count: int = 0     # number of visual rows seen before cleaning
     warnings: list[str] = field(default_factory=list)
 
@@ -216,7 +256,16 @@ class Table:
 
     @property
     def is_parts_table(self) -> bool:
-        return self.pn_col is not None
+        return self.kind == "parts"
+
+    @property
+    def is_locator_table(self) -> bool:
+        return self.kind == "locator"
+
+    @property
+    def is_component_table(self) -> bool:
+        """Table that identifies parts/components (via Part Number or Landmark)."""
+        return self.kind in ("parts", "locator")
 
 
 def _is_table_line(line: str) -> bool:
@@ -238,12 +287,41 @@ def _is_separator_row(cells: Sequence[str]) -> bool:
     return bool(body) and all(ch in " :-|" for ch in body)
 
 
+def _parse_legend_line(text: str) -> Optional[list[list[str]]]:
+    """Parse an inline numbered figure legend that is *not* a Markdown table.
+
+    DEUTZ/GUINAULT-style engine callouts are printed as a single paragraph
+    under a subtitle, e.g.::
+
+        1_Air pressure/temperature transmitter 2_Oil filter cap 3_Exhaust
+        manifold 4_Fuel supply pump ...
+
+    Each entry is a marker (the number printed on the photo) followed by an
+    underscore and the component name.  Returns ``[[marker, name], ...]`` or
+    ``None`` when the line is not clearly such a legend (needs >= 3 markers).
+    """
+    matches = list(_LEGEND_MARKER_RE.finditer(text))
+    if len(matches) < 3:
+        return None
+    entries: list[list[str]] = []
+    for i, m in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        desc = clean_text(text[m.end():end])
+        entries.append([m.group(1), desc])
+    if not entries or any(not e[1] for e in entries):
+        return None
+    return entries
+
+
 def extract_tables(md_text: str, source_file: str = "") -> list[Table]:
-    """Parse ``md_text`` and return every table found, tagged with its heading."""
+    """Parse ``md_text`` and return every component table found, tagged with
+    its heading: real Markdown tables plus inline numbered figure legends."""
     tables: list[Table] = []
     stack: list[Heading] = []
     pending: list[Optional[list[str]]] = []
     pending_start = 0
+    pending_view: Optional[str] = None
+    after_heading = False
 
     def flush() -> None:
         nonlocal pending, pending_start
@@ -253,6 +331,12 @@ def extract_tables(md_text: str, source_file: str = "") -> list[Table]:
                 tables.append(tbl)
             pending = []
             pending_start = 0
+
+    def push_heading(heading: Heading) -> None:
+        nonlocal pending_view, after_heading
+        _push_heading(stack, heading)
+        pending_view = None
+        after_heading = True
 
     lines = md_text.splitlines()
     for idx, raw in enumerate(lines, start=1):
@@ -265,29 +349,65 @@ def extract_tables(md_text: str, source_file: str = "") -> list[Table]:
         m = _HEADING_ATX_RE.match(line)
         if m:
             flush()
-            level = len(m.group(1))
-            text = clean_text(m.group(2))
-            _push_heading(stack, Heading(level, text))
+            push_heading(Heading(len(m.group(1)), clean_text(m.group(2))))
             continue
 
         if _is_table_line(line):
-            cells = _split_row(line)
             if not pending:
                 pending_start = idx
+                after_heading = False
+            cells = _split_row(line)
             if _is_separator_row(cells):
                 pending.append(None)  # separator marker
             else:
                 pending.append(cells)
             continue
 
+        # --- inline numbered figure legend under a subtitle -----------------
+        legend = _parse_legend_line(stripped)
+        if legend is not None:
+            flush()
+            path = [h.text for h in stack]
+            if pending_view and path and "view" not in path[-1].lower():
+                path = path[:-1] + [path[-1] + " " + pending_view]
+            tables.append(
+                Table(
+                    source_file=source_file,
+                    source_line=idx,
+                    component_path=path,
+                    headers=["Landmark", "Description"],
+                    pn_col=None,
+                    loc_cols=[0],
+                    kind="locator",
+                    rows=legend,
+                    raw_row_count=1,
+                )
+            )
+            pending_view = None
+            after_heading = False
+            continue
+
         # --- pseudo headings (bold-only lines, "a) sub-part" labels) --------
         pseudo = _pseudo_heading(stripped)
         if pseudo is not None:
             flush()
-            _push_heading(stack, pseudo)
+            push_heading(pseudo)
+            continue
+
+        if stripped.startswith("![") or stripped.startswith("<img"):
+            # an image can sit between a subtitle and its legend
+            flush()
+            continue
+
+        # a short "(left view)"-style line right after a heading qualifies the
+        # component name of the figure legend that follows it
+        if after_heading and _VIEW_LABEL_RE.match(stripped):
+            pending_view = stripped
             continue
 
         flush()
+        after_heading = False
+        pending_view = None
 
     flush()
     return tables
@@ -297,7 +417,8 @@ def _pseudo_heading(stripped: str) -> Optional[Heading]:
     """Convert converter-style headings that lack a '#' prefix.
 
     Marker keeps some component headings as bold-only lines
-    (``**12) Valve …**``) or as plain "a) Sub part" labels.  They are returned
+    (``**12) Valve …**``), as plain "a) Sub part" labels, or as decimal
+    numbered lines (``1.8.1.1RS678 : engine relaying``).  They are returned
     as headings so that the following table can be named after them.
     """
     if not stripped or stripped.startswith("!"):
@@ -308,6 +429,11 @@ def _pseudo_heading(stripped: str) -> Optional[Heading]:
             return None
         return Heading(4, text)
     if _LIST_LABEL_RE.match(stripped):
+        text = clean_text(stripped)
+        if text.lower().startswith(_SKIP_AS_HEADING_PREFIX):
+            return None
+        return Heading(5, text)
+    if _DOTTED_HEADING_RE.match(stripped):
         text = clean_text(stripped)
         if text.lower().startswith(_SKIP_AS_HEADING_PREFIX):
             return None
@@ -362,9 +488,11 @@ def _build_table(
 
     # 2) find the Part-Number column ----------------------------------------
     pn_col = _detect_pn_col(header, data)
+    loc_cols = _locator_cols(header)
 
     # 3) clean rows ----------------------------------------------------------
     if pn_col is not None:
+        kind = "parts"
         # make every row the same width as the header
         width = len(header)
         data = [list(r) + [""] * (width - len(r)) for r in data]
@@ -378,9 +506,28 @@ def _build_table(
         raw_row_count = len(data)
         parts = _rebuild_parts(data, pn_col, header, warnings)
         rows_out = [p["row"] for p in parts]
+    elif loc_cols:
+        kind = "locator"
+        # make every row the same width as the header
+        width = len(header)
+        data = [list(r) + [""] * (width - len(r)) for r in data]
+        data = [r[:width] for r in data]
+        raw_row_count = len(data)
+
+        # A "Landmark | Description | Landmark | Description" table is the
+        # converter's two-panel rendering of a single figure legend -> flatten
+        # it into one clean "Landmark | Description" list.
+        flattened = _flatten_locator_table(header, data, loc_cols)
+        if flattened is not None:
+            header, rows_out = flattened
+        else:
+            rows_out = _rebuild_locator_rows(data, header, loc_cols)
+        if not rows_out:
+            return None  # nothing usable in this table
     else:
-        # not a parts table: keep rows untouched (natural width) so that wide
-        # maintenance tables are not truncated to the header width.
+        kind = "other"
+        # keep rows untouched (natural width) so that wide maintenance tables
+        # are not truncated to the header width.
         maxw = max([len(header)] + [len(r) for r in data])
         if len(header) < maxw:
             header = header + [f"Column {i + 1}" for i in range(len(header), maxw)]
@@ -394,6 +541,8 @@ def _build_table(
         component_path=path,
         headers=header,
         pn_col=pn_col,
+        loc_cols=loc_cols,
+        kind=kind,
         rows=rows_out,
         raw_row_count=raw_row_count,
         warnings=warnings,
@@ -451,6 +600,115 @@ def _detect_pn_col(header: Sequence[str], data: Sequence[Sequence[str]]) -> Opti
         if "part" in norm and norm.startswith(("item", "no", "n", "rep", "pos")):
             return i
     return None
+
+
+def _locator_cols(header: Sequence[str]) -> list[int]:
+    """Indexes of the columns that point to parts/components on a figure
+    (header group ``landmark``: "Landmark", "Rep.", "Repère", ...)."""
+    return [i for i, h in enumerate(header) if classify_header_cell(h) == "landmark"]
+
+
+def _flatten_locator_table(
+    header: Sequence[str],
+    data: Sequence[Sequence[str]],
+    loc_cols: Sequence[int],
+) -> Optional[tuple[list[str], list[list[str]]]]:
+    """Flatten a two-panel figure legend table.
+
+    GUINAULT-style manuals list the figure markers in *two* side by side
+    panels inside one Markdown table::
+
+        | Landmark | Description      | Landmark | Description     |
+        | 1        | Corner beacon x4 |          |                 |
+        |          |                  | 9        | Rubber buffer   |
+        | 2        | Antenna          | 10       | Lashing hook    |
+        | ...
+
+    The panels share the same column layout, so the whole table is really one
+    ``Landmark -> Description`` legend.  This turns it into a single
+    ``[Landmark, Description]`` list (sorted numerically when all the markers
+    are numbers).  Returns ``None`` when the layout is not a repeated panel.
+    """
+    if len(loc_cols) < 2:
+        return None
+    ncol = len(header)
+    step = loc_cols[1] - loc_cols[0]
+    if step <= 0 or ncol % step != 0:
+        return None
+    if list(loc_cols) != list(range(0, ncol, step)):
+        return None
+    groups = list(range(ncol // step))
+
+    # only keep "description-like" companion columns per group; e.g. a group
+    # [Landmark, Description] is flattened, a group [Landmark, Type,
+    # Description, Function] is not a plain legend and is left untouched.
+    for g in groups:
+        base = g * step
+        companions = range(base + 1, min(base + step, ncol))
+        if any(classify_header_cell(header[c]) not in (None, "description", "landmark")
+               for c in companions):
+            return None
+
+    open_row: list[Optional[list[str]]] = [None] * len(groups)
+    out: list[list[str]] = []
+    for raw in data:
+        row = list(raw) + [""] * (ncol - len(raw))
+        for g in groups:
+            base = g * step
+            mark = row[base].strip()
+            text = " ".join(x for x in row[base + 1 : base + step] if x.strip())
+            if mark:
+                if open_row[g] is not None:
+                    out.append(open_row[g])
+                open_row[g] = [row[base], text]
+            elif text and open_row[g] is not None:
+                # continuation of the current panel entry
+                open_row[g][1] = (open_row[g][1] + " " + text).strip()
+    for g in groups:
+        if open_row[g] is not None:
+            out.append(open_row[g])
+
+    def is_numeric(s: str) -> bool:
+        return str(s).strip().rstrip(".").isdigit()
+
+    if out and all(is_numeric(r[0]) for r in out):
+        out.sort(key=lambda r: int(str(r[0]).strip().rstrip(".")))
+
+    new_header = [clean_text(header[0])] if header else ["Landmark"]
+    new_header += [
+        clean_text(header[c]) for c in range(1, min(step, ncol))
+    ]
+    return new_header, out
+
+
+def _rebuild_locator_rows(
+    data: Sequence[Sequence[str]],
+    header: Sequence[str],
+    loc_cols: Sequence[int],
+) -> list[list[str]]:
+    """Keep the rows that carry a figure landmark (dropping blank rows) and
+    merge wrapped description lines back into the landmark row they belong to.
+
+    This mirrors the "keep only rows that have a Part Number" rule, applied to
+    a Landmark/Rep. column used to locate parts or components on an image.
+    """
+    kept: list[list[str]] = []
+    for raw in data:
+        row = list(raw)
+        has_mark = any(str(row[c]).strip() for c in loc_cols if c < len(row))
+        if has_mark:
+            kept.append(row)
+            continue
+        # no landmark on this row -> merge as wrapped text into previous entry
+        if kept and any(str(x).strip() for x in row):
+            prev = kept[-1]
+            for col, cell in enumerate(row):
+                if col >= len(prev) or not str(cell).strip():
+                    continue
+                if col in loc_cols:
+                    continue
+                prev[col] = (str(prev[col]).strip() + " " + str(cell).strip()).strip()
+    return kept
 
 
 def _col_group(headers: Sequence[str], col: int) -> str:
@@ -680,17 +938,21 @@ def export_tables_to_excel(
 ) -> dict:
     """Write the given tables into an Excel workbook.
 
-    * one worksheet per component table (sheet title = component heading)
-    * only parts tables (a Part Number column exists) by default; pass
-      ``include_other_tables=True`` to also export the tables that have no
-      dedicated Part Number column (e.g. maintenance schedules).
-    * every row that does not carry a Part Number is dropped.
+    * one worksheet per component table (sheet title = component heading);
+    * by default only tables that identify parts/components are exported:
+        - **parts tables**: a dedicated Part Number column exists and only the
+          rows that carry a part number are kept;
+        - **locator tables**: a Landmark/Rep. column is used to locate parts
+          on a figure and only the rows that carry a landmark are kept.
+      pass ``include_other_tables=True`` to also export every other table
+      (e.g. maintenance schedules) as-is.
     """
     tables = list(tables)
     parts = [t for t in tables if t.is_parts_table]
-    others = [t for t in tables if not t.is_parts_table]
+    locators = [t for t in tables if t.is_locator_table]
+    others = [t for t in tables if not t.is_component_table]
 
-    selected = parts if not include_other_tables else tables
+    selected = (parts + locators) if not include_other_tables else tables
 
     wb = Workbook()
     wb.remove(wb.active)
@@ -737,20 +999,28 @@ def export_tables_to_excel(
                 cell.border = _BORDER
 
         note_row = hr + len(t.rows) + 2
-        if t.pn_col is None:
-            ws.cell(row=note_row, column=1, value="Note: table has no dedicated Part Number column.").font = _NOTE_FONT
+        if t.kind == "locator":
+            ws.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=ncols)
+            ws.cell(
+                row=note_row, column=1,
+                value="Note: Landmark column(s) locate the parts/components on the figure; "
+                      "rows without a Landmark were dropped.",
+            ).font = _NOTE_FONT
+            note_row += 1
         if t.warnings:
             ws.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=ncols)
             msg = "Note: " + "; ".join(dict.fromkeys(t.warnings))
             ws.cell(row=note_row, column=1, value=msg).font = _NOTE_FONT
 
         _autosize(ws)
+        kind_label = {"parts": "Parts", "locator": "Landmark", "other": "Other"}.get(t.kind, t.kind)
         index_rows.append(
             {
                 "Component": t.component,
                 "Section": "  >  ".join(t.component_path[:-1]) if t.component_path else "",
                 "Worksheet": ws.title,
-                "Part rows": len(t.rows),
+                "Kind": kind_label,
+                "Rows": len(t.rows),
                 "Raw rows": t.raw_row_count,
                 "Source": f"{t.source_file}:{t.source_line}",
             }
@@ -759,7 +1029,7 @@ def export_tables_to_excel(
     # --- optional index / read-me sheet -------------------------------------
     if write_index_sheet:
         ws = wb.create_sheet("Index", 0)
-        headers = ["Component", "Section", "Worksheet", "Part rows", "Raw rows", "Source"]
+        headers = ["Component", "Section", "Worksheet", "Kind", "Rows", "Raw rows", "Source"]
         for c, h in enumerate(headers, start=1):
             cell = ws.cell(row=1, column=c, value=h)
             cell.font = Font(bold=True, color="FFFFFF")
@@ -769,8 +1039,9 @@ def export_tables_to_excel(
                 cell = ws.cell(row=r_i, column=c_i, value=row.get(key) or "")
                 cell.border = _BORDER
         ws.cell(row=len(index_rows) + 2, column=1,
-                value="Legend: each worksheet = one component (its table heading is shown on the first row). "
-                      "Only rows carrying a Part Number are exported.").font = _NOTE_FONT
+                value="Legend: one worksheet per component table (its heading is shown on the first row). "
+                      "Kind 'Parts' = Part Number column; 'Landmark' = Landmark/Rep. column used to "
+                      "locate parts/components on an image.").font = _NOTE_FONT
         ws.freeze_panes = "A2"
         _autosize(ws)
 
@@ -782,7 +1053,10 @@ def export_tables_to_excel(
         "path": str(out),
         "tables": len(selected),
         "parts_tables": len(parts),
+        "locator_tables": len(locators),
         "other_tables": len(others),
         "parts_rows": sum(len(t.rows) for t in parts),
+        "locator_rows": sum(len(t.rows) for t in locators),
+        "exported_rows": sum(len(t.rows) for t in selected),
         "workbook_sheets": len(wb.sheetnames),
     }

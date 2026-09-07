@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """Extract tables from Markdown parts manuals and export them to Excel.
 
-For every Markdown table that has a dedicated **Part Number** column:
+Two kinds of "component" tables are understood:
 
-  * the heading above the table is kept as its **component** (that header is
-    also written on the first row of the worksheet), and
-  * only the rows that actually carry a part number are exported
-    (blank / duplicated / wrapped "orphan" rows are dropped, while wrapped text
-    and quantities that belong to a part are merged back into it).
+* **Part tables** -- a dedicated **Part Number** column exists; the heading
+  above the table is kept as its **component**, and only the rows that
+  actually carry a part number are exported (wrapped text and quantities that
+  belong to a part are merged back into it).
+
+* **Locator tables** -- no part number, but a **Landmark** / **Rep.** column
+  is used to locate parts or components on an illustration (common in
+  GUINAULT manuals, e.g. ``Landmark | Description | Landmark | Description``).
+  Only the rows that carry a landmark are kept, and side-by-side two-panel
+  legends are flattened into one ``Landmark | Description`` list.
 
 The result is one Excel worksheet per component table.
 
@@ -17,8 +22,11 @@ Example
         "conversion_results/1. Servicing Manual TAM 7002.pdf 01072026/"*.md \
         -o tam7002_parts.xlsx
 
-    # also export the tables without a Part Number column (e.g. maintenance
-    # schedules), untouched, on their own sheets:
+    python scripts/md_tables_to_excel.py \
+        "conversion_results/GUINAULT - GPU GA180 - Operation and maintenance manual (1)/"*.md
+
+    # also export the tables without Part Number / Landmark columns (e.g.
+    # maintenance schedules), untouched, on their own sheets:
     python scripts/md_tables_to_excel.py manual.md --include-other-tables
 """
 
@@ -70,8 +78,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--include-other-tables",
         action="store_true",
-        help="also export tables that have no dedicated Part Number column "
-        "(they are exported as-is on their own sheet)",
+        help="also export the tables that have no Part Number and no "
+        "Landmark/Rep. column (they are exported as-is on their own sheet)",
     )
     parser.add_argument(
         "--no-index",
@@ -106,15 +114,17 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("no tables found in the given markdown file(s)")
 
     parts = [t for t in tables if t.is_parts_table]
-    if not parts and not args.include_other_tables:
+    locators = [t for t in tables if t.is_locator_table]
+    if not parts and not locators and not args.include_other_tables:
         print(
-            "error: no table with a dedicated Part Number column was found "
+            "error: no table with a Part Number or Landmark column was found "
             "in the given file(s).",
             file=sys.stderr,
         )
         print(
             "hint: use --include-other-tables to export every table, or check "
-            "that the markdown has a 'Part Number' / 'Part No.' / 'PN' / 'Code' header.",
+            "that the markdown has a 'Part Number' / 'Part No.' / 'PN' / 'Code' "
+            "or 'Landmark' / 'Rep.' header.",
             file=sys.stderr,
         )
         return 3
@@ -130,18 +140,21 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Input markdown : {', '.join(str(f) for f in files)}")
         print(f"Excel workbook : {summary['path']}")
         print(f"Tables extracted: {len(tables)} "
-              f"(parts tables: {len(parts)}, other tables: {len(tables) - len(parts)})")
+              f"(parts: {len(parts)}, landmark: {len(locators)}, "
+              f"other: {len(tables) - len(parts) - len(locators)})")
         index_count = 0 if args.no_index else 1
         if args.include_other_tables:
             print(f"Sheets written : {summary['workbook_sheets']} "
-                  f"(parts: {summary['parts_tables']}, other: {summary['other_tables']}, index: {index_count})")
+                  f"(parts: {summary['parts_tables']}, landmark: {summary['locator_tables']}, "
+                  f"other: {summary['other_tables']}, index: {index_count})")
         else:
             print(f"Sheets written : {summary['workbook_sheets']} "
-                  f"(parts: {summary['parts_tables']}, index: {index_count}; "
-                  f"other tables skipped - use --include-other-tables to add them)")
+                  f"(parts: {summary['parts_tables']}, landmark: {summary['locator_tables']}, "
+                  f"index: {index_count}; other tables skipped - use --include-other-tables to add them)")
         print(f"Part rows kept : {summary['parts_rows']}")
+        print(f"Landmark rows  : {summary['locator_rows']}")
 
-        warned = [t for t in parts if t.warnings]
+        warned = [t for t in (parts + locators) if t.warnings]
         if warned:
             print("\nTables needing a manual check (best-effort reconstruction):")
             for t in warned:

@@ -127,17 +127,31 @@ spare-parts list:
 
 * it extracts every table and remembers the **heading above it as its
   component** (that header is written on the first row of each worksheet);
-* for every table that has a dedicated **Part Number** column it keeps **only
-  the rows that carry a part number** (blank / duplicate rows are dropped,
-  while wrapped text and quantities that belong to a part are merged back);
+* it understands two kinds of component tables and filters them accordingly:
+  * **Part tables** – a dedicated **Part Number** column exists; only the rows
+    that carry a part number are kept (blank / duplicate rows are dropped,
+    while wrapped text and quantities that belong to a part are merged back);
+  * **Locator tables** – no part number, but a **Landmark** / **Rep.** column
+    is used to locate parts or components on an illustration (common in
+    GUINAULT manuals); only the rows that carry a landmark are kept, and
+    side-by-side legends like `Landmark | Description | Landmark | Description`
+    are flattened into one sorted `Landmark | Description` list.
+* it also captures **inline figure legends**: parts/components printed under a
+  subtitle as a plain numbered paragraph (not a table), e.g. the DEUTZ engine
+  callouts
+  `1\_Air pressure/temperature transmitter 2\_Oil filter cap 3\_Exhaust manifold …`
+  (the subtitle becomes the component, and a trailing `(left view)`-style line
+  is kept in the component name);
 * it writes **one worksheet per component** (sheet name = component heading)
-  plus an `Index` overview sheet.
+  plus an `Index` overview sheet (with a `Kind` column).
 
 ```bash
-# default: one sheet per component table, only part-number rows
+# CIMC TAM 7002 servicing manual: 53 part tables -> one sheet each
 python scripts/md_tables_to_excel.py "conversion_results/1. Servicing Manual TAM 7002.pdf 01072026/1. Servicing Manual TAM 7002.pdf 01072026.md"
 
-# keep the non-part tables too (e.g. maintenance schedules)
+# GUINAULT GPU GA180 manual: Landmark legends + DEUTZ engine callouts
+# (10 component sheets: figures + engine left/right view part lists)
+python scripts/md_tables_to_excel.py "conversion_results/GUINAULT - GPU GA180 - Operation and maintenance manual (1)/GUINAULT - GPU GA180 - Operation and maintenance manual (1).md"# keep the non-component tables too (e.g. maintenance schedules)
 python scripts/md_tables_to_excel.py manual.md --include-other-tables -o parts.xlsx
 
 # scan a whole folder of markdown files
