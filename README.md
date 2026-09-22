@@ -164,6 +164,45 @@ and cell text can wrap over several visual rows. Tables where several parts
 were collapsed into a single header line (e.g. `Item # 2 3 4 …`) are expanded on
 a best-effort basis and reported in the console so they can be double-checked.
 
+## Art books: PDF → images
+
+`scripts/pdf_images.py` pulls the pictures out of an art book, portfolio or
+scanned magazine. It copies the embedded streams **verbatim** (JPEG / JPEG 2000
+are written byte-for-byte, no decode and no re-encode), so a 26-page art book
+finishes in ~0.05 s and the output is bit-identical to the source artwork.
+
+* walks page content recursively, so images nested in form XObjects are found too;
+* de-duplicates identical images (a background reused on several pages is kept once);
+* names files `<pdf>-p0001-01.jpg` (page + index), so they sort back into reading order;
+* `--format png|jpg|webp|tif` re-encodes from the **decoded pixel data** when you
+  need a different container, `--flatten` bakes in alpha masks (transparency);
+* `--render-missing` rasterizes the pages that hold no extractable image at all
+  (vector or tiled art) at a chosen `--dpi`;
+* `--manifest out/manifest.json` records page, size, filters and duplicates per image;
+* input can be a single PDF, **a whole folder (scanned recursively) or a glob
+  pattern** — a folder of art books converts in one command, and `-o` then gives
+  each PDF its own sub-folder.
+
+```bash
+# whole art book -> "God of War ..._images/" next to the PDF
+python scripts/pdf_images.py "ingress/God of War Ragnarök - Digital Artbook.pdf"
+
+# a folder, scanned recursively (hidden files/folders are skipped)
+python scripts/pdf_images.py artbooks/
+
+# a glob pattern -- quote it so the shell does not expand it first
+python scripts/pdf_images.py "artbooks/**/*.pdf" -o out
+
+# pages 1-12 and 40+, ignoring thumbnails and decoration
+python scripts/pdf_images.py artbook.pdf -o out --pages 1-12,40- --min-px 256
+
+# vector/tiled PDF: rasterize whatever had no embedded image
+python scripts/pdf_images.py artbook.pdf --render-missing --dpi 300
+
+# normalize to PNG with transparency flattened, plus a JSON manifest
+python scripts/pdf_images.py artbook.pdf --format png --flatten --manifest out/manifest.json
+```
+
 ## Architecture
 
 ### Components
