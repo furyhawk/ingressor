@@ -178,6 +178,13 @@ finishes in ~0.05 s and the output is bit-identical to the source artwork.
   need a different container, `--flatten` bakes in alpha masks (transparency);
 * `--render-missing` rasterizes the pages that hold no extractable image at all
   (vector or tiled art) at a chosen `--dpi`;
+* **CMYK artwork is converted to sRGB by default.** Print-sourced art books store
+  their JPEGs as CMYK with the samples inverted (Adobe marker) and usually no
+  colour profile, so anything that reads those samples literally — PIL, browsers,
+  VS Code — shows the page as a **negative**. PDFium does the conversion (it
+  honours the Adobe marker / embedded ICC), and the result is written as RGB JPEG
+  (`--quality`, default 95) so it looks right everywhere. `--cmyk keep` copies the
+  original CMYK streams byte-for-byte instead, if you need them for print;
 * `--manifest out/manifest.json` records page, size, filters and duplicates per image;
 * input can be a single PDF, **a whole folder (scanned recursively) or a glob
   pattern** — a folder of art books converts in one command, and `-o` then gives
@@ -201,6 +208,9 @@ python scripts/pdf_images.py artbook.pdf --render-missing --dpi 300
 
 # normalize to PNG with transparency flattened, plus a JSON manifest
 python scripts/pdf_images.py artbook.pdf --format png --flatten --manifest out/manifest.json
+
+# keep the original CMYK streams instead of converting them to sRGB
+python scripts/pdf_images.py artbook.pdf --cmyk keep
 ```
 
 ## Architecture

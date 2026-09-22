@@ -12,9 +12,12 @@ Inputs may be single PDFs, whole folders (scanned recursively) or glob patterns,
 so a library of art books can be converted in one command.
 
 Images stored with simple filters (Flate/LZW/...) are decoded and re-encoded as
-PNG, using the decoded pixel data directly so colors stay untouched.  Pages that
-hold no extractable image at all -- vector art, tiled images -- can be rasterized
-with ``--render-missing``.
+PNG, using the decoded pixel data directly so colors stay untouched.  CMYK
+artwork is converted to sRGB by default (``--cmyk keep`` to opt out): its JPEG
+samples are stored inverted (Adobe marker), so viewers that read them literally
+-- PIL, browsers, VS Code -- show a CMYK art book as a negative.  Pages that hold
+no extractable image at all -- vector art, tiled images -- can be rasterized with
+``--render-missing``.
 
 Examples
 --------
@@ -63,6 +66,7 @@ except ImportError as exc:  # pragma: no cover - dependency guard
     sys.exit(f"pypdfium2 and pillow are required:  pip install pypdfium2 pillow  ({exc})")
 
 _IMAGE_OBJ = pdfium.raw.FPDF_PAGEOBJ_IMAGE
+_CMYK = pdfium.raw.FPDF_COLORSPACE_DEVICECMYK
 
 # > 8 bytes is enough to tell these apart; ordered because JPEG2000 has two forms.
 _MAGIC = (
@@ -105,6 +109,7 @@ class Result:
     skipped_small: int = 0
     skipped_existing: int = 0
     failed: int = 0
+    cmyk_converted: int = 0
     bytes_written: int = 0
     seconds: float = 0.0
     images: list[ImageRecord] = field(default_factory=list)
@@ -235,21 +240,13 @@ def extract_native(image: pdfium.PdfImage) -> tuple[bytes, str, list[str]]:
     return data, sniff_extension(data), list(image.get_filters())
 
 
-def reencode(image: pdfium.PdfImage, data: bytes, fmt: str, flatten: bool) -> tuple[bytes, str]:
-    """Re-encode the image, keeping the exact source pixels where possible."""
-    pil = None
-    if not flatten:
-        # Decoding the stream ourselves avoids pdfium's bitmap color transform
-        # (which shifts RGB values by ~10 levels on ICC-tagged art).
-        try:
-            pil = Image.open(io.BytesIO(data))
-            pil.load()
-        except Exception:
-            pil = None
-    if pil is None:
-        # transparency masks / exotic color spaces: let pdfium rasterize it
-        pil = image.get_bitmap(render=flatten).to_pil()
+def is_cmyk(image: pdfium.PdfImage) -> bool:
+    """True for CMYK artwork, which needs converting before it can be shown."""
+    return image.get_metadata().colorspace == _CMYK
 
+
+def encode(pil: Image.Image, fmt: str, quality: int) -> tuple[bytes, str]:
+    """Save a PIL image in the requested format, returning (bytes, extension)."""
     if fmt in {"jpg", "jpeg"}:
         if pil.mode not in {"RGB", "L"}:
             pil = pil.convert("RGB")
@@ -262,8 +259,51 @@ def reencode(image: pdfium.PdfImage, data: bytes, fmt: str, flatten: bool) -> tu
         ext = fmt
 
     buffer = io.BytesIO()
-    pil.save(buffer, format={"tif": "TIFF", "jpg": "JPEG"}.get(fmt, fmt.upper()))
+    kwargs = {"quality": quality} if fmt in {"jpg", "jpeg", "webp"} else {}
+    pil.save(buffer, format={"tif": "TIFF", "jpg": "JPEG"}.get(fmt, fmt.upper()), **kwargs)
     return buffer.getvalue(), ext
+
+
+def prepare(
+    image: pdfium.PdfImage, *, fmt: str, flatten: bool, cmyk: str, quality: int
+) -> tuple[bytes, str, bool]:
+    """Bytes for one image, its extension, and whether CMYK was converted.
+
+    ``fmt`` is the requested format, where ``"native"`` means "copy the original
+    stream".  ``cmyk`` is ``"rgb"`` (convert CMYK artwork to sRGB, the default)
+    or ``"keep"`` (write the original CMYK stream unchanged).
+    """
+    cmyk_art = is_cmyk(image)
+    if fmt == "native" and not flatten and not (cmyk_art and cmyk == "rgb"):
+        data, ext, _ = extract_native(image)
+        return data, ext, False
+
+    out_fmt = fmt
+    if out_fmt == "native":
+        # CMYK is written as RGB JPEG: correct on every viewer, familiar
+        # extension, and far smaller than PNG for photo-like artwork.
+        out_fmt = "jpg" if cmyk_art else "png"
+
+    if cmyk_art:
+        # PIL alone reads Adobe CMYK samples as a negative, so let pdfium do the
+        # conversion -- it honours the embedded ICC profile / Adobe marker.
+        pil = image.get_bitmap(render=flatten).to_pil().convert("RGB")
+    else:
+        pil = None
+        if not flatten:
+            # Decoding the stream ourselves avoids pdfium's bitmap color
+            # transform (which shifts RGB values by ~10 levels on ICC-tagged art).
+            try:
+                pil = Image.open(io.BytesIO(extract_native(image)[0]))
+                pil.load()
+            except Exception:
+                pil = None
+        if pil is None:
+            # transparency masks / exotic color spaces: let pdfium rasterize it
+            pil = image.get_bitmap(render=flatten).to_pil()
+
+    data, ext = encode(pil, out_fmt, quality)
+    return data, ext, cmyk_art
 
 
 def extract_pdf(
@@ -273,6 +313,8 @@ def extract_pdf(
     pages: str | None = None,
     fmt: str = "native",
     flatten: bool = False,
+    cmyk: str = "rgb",
+    quality: int = 95,
     min_px: int = 0,
     min_bytes: int = 0,
     dedupe: bool = True,
@@ -311,11 +353,9 @@ def extract_pdf(
                     continue
 
                 try:
-                    if fmt == "native":
-                        data, ext, filters = extract_native(image)
-                    else:
-                        raw, _, filters = extract_native(image)
-                        data, ext = reencode(image, raw, fmt, flatten)
+                    data, ext, converted = prepare(
+                        image, fmt=fmt, flatten=flatten, cmyk=cmyk, quality=quality)
+                    filters = list(image.get_filters())
                 except Exception as exc:  # malformed / unsupported image object
                     result.failed += 1
                     if verbose:
@@ -325,6 +365,8 @@ def extract_pdf(
                 if len(data) < min_bytes:
                     result.skipped_small += 1
                     continue
+                if converted:
+                    result.cmyk_converted += 1
 
                 digest = hashlib.blake2b(data, digest_size=12).hexdigest()
                 record = ImageRecord(
@@ -408,6 +450,12 @@ def build_parser() -> argparse.ArgumentParser:
                              "decodes and re-encodes")
     parser.add_argument("--flatten", action="store_true",
                         help="bake in transparency masks / placement transform (implies re-encode)")
+    parser.add_argument("--cmyk", default="rgb", choices=["rgb", "keep"],
+                        help="rgb (default) converts CMYK artwork to sRGB, which looks right "
+                             "in every viewer; keep copies the original CMYK stream, whose "
+                             "colors depend on the viewer honouring the Adobe marker/ICC")
+    parser.add_argument("--quality", type=int, default=95, metavar="N",
+                        help="JPEG/WebP quality when encoding (default 95)")
     parser.add_argument("--min-px", type=int, default=0, metavar="N",
                         help="skip images smaller than N px in either dimension")
     parser.add_argument("--min-kb", type=float, default=0, metavar="KB",
@@ -459,6 +507,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = extract_pdf(
                 pdf_path, out_dir,
                 pages=args.pages, fmt=args.format, flatten=args.flatten,
+                cmyk=args.cmyk, quality=args.quality,
                 min_px=args.min_px, min_bytes=int(args.min_kb * 1024),
                 dedupe=not args.no_dedupe, overwrite=args.overwrite,
                 render_missing=args.render_missing, render_all=args.render_all,
@@ -474,6 +523,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                   f"{result.written} written ({result.megabytes:.1f} MB), "
                   f"{result.duplicates} duplicates, {result.skipped_small} filtered, "
                   f"{result.failed} failed in {result.seconds:.2f}s")
+            if result.cmyk_converted:
+                print(f"  {result.cmyk_converted} CMYK images converted to sRGB "
+                      f"(pass --cmyk keep to copy the CMYK streams as they are)")
             if not result.written and not args.render_missing:
                 print("  no embedded image found -- try --render-missing to "
                       "rasterize the pages instead")
@@ -488,6 +540,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"\n{len(results)} PDF(s): {sum(r.written for r in results)} images, "
               f"{sum(r.bytes_written for r in results) / 1e6:.1f} MB, "
               f"{sum(r.duplicates for r in results)} duplicates, "
+              f"{sum(r.cmyk_converted for r in results)} CMYK->sRGB, "
               f"{sum(r.failed for r in results)} failures in "
               f"{sum(r.seconds for r in results):.2f}s")
     return 0
